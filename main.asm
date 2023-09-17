@@ -32,6 +32,7 @@ mensaje_nombre_b db "Escriba el nombre del jugador 2: $"
 nl       db 0a,"$"
 mensaje_jugar    db "Ingrese la columna: $"
 mensaje_fin_juego db 0ah,"No hay mas casillas disponibles, fin del juego",0a,0a,"$"
+mensaje_victoria db 0ah,"Felicidades, ha ganado",0a,0a,"$"
 buffer_nombre db 20,00
               db 20 dup (00)
 nombre_a      db 00
@@ -292,6 +293,10 @@ pedir_columna:
 		int 21
 		;; - Imprimir tablero [OK]
 		call imprimir_tablero
+
+		;; - Verificar victoria
+		call verificar_victoria
+
 		;; - Cambiar turno
 		mov AL, [ficha_actual]
 		cmp AL, ficha_a
@@ -500,6 +505,73 @@ fin_juego:
 		mov AH, 09h ; Función 09h: Mostrar un mensaje.
 		int 21h ; Llamar a la interrupción 21h para mostrar el mensaje.
 		jmp menu 
+;;
+;; verificar_victoria
+;;
+
+verificar_victoria:
+    ; Verificar victoria en las filas
+    mov cx, 06 ; Número de filas
+    mov si, 00 ; Índice de inicio del tablero
+    verificar_filas:
+        mov di, si
+        add di, 04 ; fila de 4 elementos hacia la derecha
+        verificar_horizontal:
+            mov al, [tablero+si]
+            cmp al, ficha_a ; Comprobar si es una ficha del jugador 1
+            je jugador1_encontrado
+            cmp al, ficha_b ; Comprobar si es una ficha del jugador 2
+            je jugador2_encontrado
+            jmp siguiente_celda
+        jugador1_encontrado:
+            ; Comprobar si las siguientes tres celdas son del jugador 1
+            mov al, [tablero+si+1]
+            cmp al, ficha_a
+            je siguiente_celda2
+            jmp siguiente_celda
+        siguiente_celda2:
+            mov al, [tablero+si+2]
+            cmp al, ficha_a
+            je siguiente_celda3
+            jmp siguiente_celda
+        siguiente_celda3:
+            mov al, [tablero+si+3]
+            cmp al, ficha_a
+            je victoria
+            jmp siguiente_celda
+        jugador2_encontrado:
+            ; Comprobar si las siguientes tres celdas son del jugador 2
+            mov al, [tablero+si+1]
+            cmp al, ficha_b
+            je siguiente_celda12
+            jmp siguiente_celda
+        siguiente_celda12:
+            mov al, [tablero+si+2]
+            cmp al, ficha_b
+            je siguiente_celda13
+            jmp siguiente_celda
+        siguiente_celda13:
+            mov al, [tablero+si+3]
+            cmp al, ficha_b
+            je victoria
+        siguiente_celda:
+            inc si
+            cmp si, di
+            jb verificar_horizontal
+
+		sub si, 04h
+        add si, 07h
+        loop verificar_filas
+
+    
+    ; No se encontró ninguna victoria
+    ret
+
+victoria:
+    mov ah, 09h
+    lea dx, mensaje_victoria
+    int 21h
+    ret
 
 fin:
 .EXIT
