@@ -28,71 +28,70 @@ char db ?
 .STARTUP
 ;; LÓGICA DEL PROGRAMA
 inicio:
-    	mov ah, 06h    ; Función 06h: Scroll up (borrar pantalla)
-    	mov al, 0       ; Valor de caracteres para rellenar la pantalla (0 en blanco)
-    	mov bh, 07h     ; Página de códigos (color de fondo y texto)
-    	mov ch, 0       ; Fila superior
-    	mov cl, 0       ; Columna superior
-    	mov dh, 24      ; Fila inferior (25 líneas en modo texto)
-    	mov dl, 79      ; Columna inferior (80 columnas en modo texto)
-    	int 10h         ; Llamar a la interrupción 10h para realizar el desplazamiento de pantalla
+    mov ah, 06h    ; Función 06h: Scroll up (borrar pantalla)
+    mov al, 0       ; Valor de caracteres para rellenar la pantalla (0 en blanco)
+    mov bh, 07h     ; Página de códigos (color de fondo y texto)
+    mov ch, 0       ; Fila superior
+    mov cl, 0       ; Columna superior
+    mov dh, 24      ; Fila inferior (25 líneas en modo texto)
+    mov dl, 79      ; Columna inferior (80 columnas en modo texto)
+    int 10h         ; Llamar a la interrupción 10h para realizar el desplazamiento de pantalla
 
-		;;imprime el encabezado
-		mov DX, offset encabezado
-		mov AH, 09h
-		int 21
-		;;
-		mov AH, 08h
-		int 21
-		;;verifica si la tecla presionada es enter
-		cmp AL, 0Dh
-		;; se modificó el registro de banderas
-		je menu
-		jmp no_se_presiono
+	;;imprime el encabezado
+	mov DX, offset encabezado
+	mov AH, 09h
+	int 21
+	;;
+	mov AH, 08h
+	int 21
+	;;verifica si la tecla presionada es enter
+	cmp AL, 0Dh
+	;; se modificó el registro de banderas
+	je menu
+	jmp no_se_presiono
+
 no_se_presiono:
-		mov DX, offset mensaje_reintente
-		mov AH, 09h
-		int 21
+	mov DX, offset mensaje_reintente
+	mov AH, 09h
+	int 21
 
-        ;;
-		mov AH, 01h
-		int 21
-		;;verifica si la tecla presionada es enter
-		cmp AL, 0Dh
-		;; se modificó el registro de banderas
-		je menu
-		jmp no_se_presiono
+	mov AH, 01h
+	int 21
+	;;verifica si la tecla presionada es enter
+	cmp AL, 0Dh
+	;; se modificó el registro de banderas
+	je menu
+	jmp no_se_presiono
 menu:
-        mov DX, offset mensaje_menu
-		mov AH, 09h
-		int 21
+    mov DX, offset mensaje_menu
+	mov AH, 09h
+	int 21
 
-		;;
-		mov AH, 08h
-		int 21
-		;;verifica si la tecla presionada es 1
-		cmp AL, 31h
-		je menu
-		;;verifica si la tecla presionada es 2
-		cmp AL, 32h
-		je menu
-		;;verifica si la tecla presionada es 3
-		cmp AL, 33h
-		je ayuda
-		;;verifica si la tecla presionada es 4
-		cmp AL, 34h
-		je fin
-		jmp menu
+	mov AH, 08h
+	int 21
+	;;verifica si la tecla presionada es 1
+	cmp AL, 31h
+	je menu
+	;;verifica si la tecla presionada es 2
+	cmp AL, 32h
+	je menu
+	;;verifica si la tecla presionada es 3
+	cmp AL, 33h
+	je ayuda
+	;;verifica si la tecla presionada es 4
+	cmp AL, 34h
+	je fin
+	jmp menu
 ayuda:
-		; Abrir el archivo para lectura.
-		mov DX, offset archivo_db  		; Nombre del archivo a abrir.
-		mov AL, 0h          		; Modo de apertura: lectura.
-		mov AH, 3Dh         		; Función 3Dh: Abrir archivo.
-		int 21h             		; Llamar a la interrupción 21h.
+	; Abrir el archivo para lectura.
+	mov DX, offset archivo_db  		; Nombre del archivo a abrir.
+	mov AL, 0h          		; Modo de apertura: lectura.
+	mov AH, 3Dh         		; Función 3Dh: Abrir archivo.
+	int 21h             		; Llamar a la interrupción 21h.
 
-		jc error            ; Verificar si hubo un error al abrir el archivo.
+	jc error            ; Verificar si hubo un error al abrir el archivo.
 
-		mov BX, AX          ; Guardar el descriptor de archivo en variable.
+	mov BX, AX          ; Guardar el descriptor de archivo en variable.
 
 leer_caracter:
 	;;guardamos todo el contenido del archivo en el buffer
@@ -203,7 +202,6 @@ error_lectura:
     lea dx, mensaje_error_linea ; Dirección del mensaje de error.
     int 21h             ; Llamar a la interrupción 21h para mostrar el mensaje.
 
-; Macros para verificar si un carácter es alfanumérico, un dígito o un símbolo de puntuación
 
 
 fin:
