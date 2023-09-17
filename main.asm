@@ -563,6 +563,54 @@ verificar_victoria:
         add si, 07h
         loop verificar_filas
 
+	; Verificar victoria en las columnas
+    mov si, 00 ; Índice de inicio del tablero
+    verificar_columnas:
+		mov di, 00h
+        add di, 15h ; 3 filas hacia abajo, SI debe iniciar menor a la posicion 21 sino ya es la fila 4
+        verificar_vertical:
+            mov al, [tablero+si]
+            cmp al, ficha_a
+            je jugador1_encontrado_vertical
+            cmp al, ficha_b
+            je jugador2_encontrado_vertical
+            jmp siguiente_celda_vertical
+        jugador1_encontrado_vertical:
+            mov al, [tablero+si+7]
+            cmp al, ficha_a
+            je jugador1_encontrado_vertical2
+            jmp siguiente_celda_vertical
+		jugador1_encontrado_vertical2:
+			mov al, [tablero+si+0eh]
+			cmp al, ficha_a
+			je jugador1_encontrado_vertical3
+			jmp siguiente_celda_vertical
+		jugador1_encontrado_vertical3:
+			mov al, [tablero+si+15h]
+			cmp al, ficha_a
+			je victoria
+			jmp siguiente_celda_vertical
+
+        jugador2_encontrado_vertical:
+            mov al, [tablero+si+7]
+            cmp al, ficha_b
+            je jugador2_encontrado_vertical2
+			jmp siguiente_celda_vertical
+		jugador2_encontrado_vertical2:
+			mov al, [tablero+si+0eh]
+			cmp al, ficha_b
+			je jugador2_encontrado_vertical3
+			jmp siguiente_celda_vertical
+		jugador2_encontrado_vertical3:
+			mov al, [tablero+si+15h]
+			cmp al, ficha_b
+			je victoria
+			jmp siguiente_celda_vertical
+		
+        siguiente_celda_vertical:
+            inc si
+            cmp si, di
+            jb verificar_vertical
     
     ; No se encontró ninguna victoria
     ret
