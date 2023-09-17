@@ -31,6 +31,7 @@ mensaje_nombre_a db "Escriba el nombre del jugador 1: $"
 mensaje_nombre_b db "Escriba el nombre del jugador 2: $"
 nl       db 0a,"$"
 mensaje_jugar    db "Ingrese la columna: $"
+mensaje_fin_juego db 0ah,"No hay mas casillas disponibles, fin del juego",0a,0a,"$"
 buffer_nombre db 20,00
               db 20 dup (00)
 nombre_a      db 00
@@ -44,7 +45,7 @@ antes_de_fila      db "| $"
 entre_columnas     db " | $"
 pie_de_tablero     db "'---'---'---'---'---'---'---'",0a,"$"
 ficha_actual  db ficha_a
-
+espacios_usados db 00h
 .CODE
 .STARTUP
 ;; LÓGICA DEL PROGRAMA
@@ -254,7 +255,14 @@ jugar:
 	mov AH, 09
 	int 21
 
+
 pedir_columna:
+
+		mov BL, [espacios_usados]  ;tomamos el valor del contador de espacios usados
+		cmp BL, 2Ah       ;comparamos si el contador llego a 42
+		je fin_juego
+		mov BL, 0000 	;limpiamos BL
+
 		mov DX, offset mensaje_jugar
 		mov AH, 09
 		int 21
@@ -265,10 +273,17 @@ pedir_columna:
 		;; AL -> número de columna
 		call buscar_vacio_en_columna
 		;; DL -> 00 si se logró encontrar un espacio
+
 		cmp DL, 0ffh	;si no hay espacio vacio en esta columna entonces volvemos a pedir la columna
 		je pedir_columna
 		;; DI -> dirección de la celda disponible
 		;; Se coloca ficha
+		mov BL, [espacios_usados]  ;aumentamos el contador de espacios usados
+		add BL, 01
+		mov [espacios_usados], BL
+
+		mov BX, 0000	;;limpiamos BX
+
 		mov AL, ficha_actual
 		mov [DI], AL
 		;;
@@ -284,6 +299,7 @@ pedir_columna:
 		;;
 		mov AL, ficha_a
 		mov [ficha_actual], AL
+
 		jmp pedir_columna
 cambiar_a_por_b:
 		mov AL, ficha_b
@@ -478,6 +494,12 @@ avanzar_en_fila:
 		mov AH, 09
 		int 21
 		ret
+
+fin_juego:
+		mov DX, offset mensaje_fin_juego
+		mov AH, 09h ; Función 09h: Mostrar un mensaje.
+		int 21h ; Llamar a la interrupción 21h para mostrar el mensaje.
+		jmp menu 
 
 fin:
 .EXIT
