@@ -1,5 +1,7 @@
 .RADIX 16
 .MODEL small
+ficha_a  equ 'O'
+ficha_b  equ 'X'
 .STACK
 .DATA
 encabezado  db "	Universidad de San Carlos de Guatemala",0a,"	Facultad de Ingenieria",0a,"	Arquitectura de Computadora y Ensambladores 1",0a,"	Seccion ""A""",0a,"	Segundo Semestre 2023",0a,0a,"	Nombre: Steven Josue Gonzalez Monroy",0a,"	Carnet: 201903974",0a,0a,"	Presione 'Enter' para continuar...",0a,"$"
@@ -23,6 +25,25 @@ buffer db 255 dup(0)			 ; Buffer para almacenar los caracteres leídos
 contadorLinea dw 0			   ; Contador de líneas
 newline db 0Dh, 0Ah, "$"
 char db ?
+
+;variables para juego
+mensaje_nombre_a db "Escriba el nombre del jugador 1: $"
+mensaje_nombre_b db "Escriba el nombre del jugador 2: $"
+nl       db 0a,"$"
+mensaje_jugar    db "Ingrese la columna: $"
+buffer_nombre db 20,00
+              db 20 dup (00)
+nombre_a      db 00
+              db 20 dup (00)
+nombre_b      db 00
+              db 20 dup (00)
+tablero       db 2a dup (00)
+encabezado_tablero db "  A   S   D   F   J   K   L  ",0a
+                   db " ___ ___ ___ ___ ___ ___ ___ ",0a,"$"
+antes_de_fila      db "| $"
+entre_columnas     db " | $"
+pie_de_tablero     db "'---'---'---'---'---'---'---'",0a,"$"
+ficha_actual  db ficha_a
 
 .CODE
 .STARTUP
@@ -71,7 +92,7 @@ menu:
 	int 21
 	;;verifica si la tecla presionada es 1
 	cmp AL, 31h
-	je menu
+	je jugar
 	;;verifica si la tecla presionada es 2
 	cmp AL, 32h
 	je menu
@@ -202,7 +223,261 @@ error_lectura:
     lea dx, mensaje_error_linea ; Dirección del mensaje de error.
     int 21h             ; Llamar a la interrupción 21h para mostrar el mensaje.
 
+jugar: 
+	;; pedimos la cadena de nombre del jugador 1
+	mov DX, offset mensaje_nombre_a
+	mov AH, 09
+	int 21
+	;;leemos la cadena
+	mov DX, offset buffer_nombre
+	mov AH, 0a
+	int 21
+	;;copiamos la cadena
+	mov DI, offset nombre_a
+	call copiar_cadena
+	;;damos un salto de linea
+	mov DX, offset nl
+	mov AH, 09
+	int 21
+	;;
+	mov DX, offset mensaje_nombre_b
+	mov AH, 09
+	int 21
+	mov DX, offset buffer_nombre
+	mov AH, 0a
+	int 21
+	;;
+	mov DI, offset nombre_b
+	call copiar_cadena
+	;;
+	mov DX, offset nl
+	mov AH, 09
+	int 21
 
+pedir_columna:
+		mov DX, offset mensaje_jugar
+		mov AH, 09
+		int 21
+		mov AH, 01
+		int 21
+		;; AL -> columna
+		call pasar_de_id_a_numero
+		;; AL -> número de columna
+		call buscar_vacio_en_columna
+		;; DL -> 00 si se logró encontrar un espacio
+		cmp DL, 0ffh	;si no hay espacio vacio en esta columna entonces volvemos a pedir la columna
+		je pedir_columna
+		;; DI -> dirección de la celda disponible
+		;; Se coloca ficha
+		mov AL, ficha_actual
+		mov [DI], AL
+		;;
+		mov DX, offset nl
+		mov AH, 09
+		int 21
+		;; - Imprimir tablero [OK]
+		call imprimir_tablero
+		;; - Cambiar turno
+		mov AL, [ficha_actual]
+		cmp AL, ficha_a
+		je cambiar_a_por_b
+		;;
+		mov AL, ficha_a
+		mov [ficha_actual], AL
+		jmp pedir_columna
+cambiar_a_por_b:
+		mov AL, ficha_b
+		mov [ficha_actual], AL
+		jmp pedir_columna
+		;; - Guardar tablero
+		;; - Cargar tablero
+		jmp fin
+
+
+;; copiar_cadena - copia una cadena
+;;    ENTRADAS: DI -> dirección hacia donde guardar
+copiar_cadena:
+		;; DI tengo ^
+		mov SI, offset buffer_nombre 	;tomamos la direccion del primer byte del buffer
+		inc SI							;pasamos a la segunda posicion del buffer
+		mov AL, [SI]					;trasladamos el segundo byte del buffer a AL
+		mov [DI], AL					;trasladamos el segundo byte del buffer a DI
+		inc SI   ;; moverme a los bytes de la cadena
+		inc DI   ;; para guardar esos bytes en el lugar correcto
+		;;
+		mov CX, 0000  ;; limpiando CX
+		mov CL, AL		;;especificamos el tamaño de la cadena para el ciclo de copiado este valor es usado por la instruccion loop
+ciclo_copiar_cadena:
+		mov AL, [SI]
+		mov [DI], AL
+		inc SI
+		inc DI
+		loop ciclo_copiar_cadena
+		ret
+
+;; pasar_de_id_a_numero - pasa de un id de columna a un número
+;;
+;; SALIDA:  AL -> número de columna o coordenada X
+pasar_de_id_a_numero:
+		cmp AL, 'a'
+		je retornar_num0
+		cmp AL, 's'
+		je retornar_num1
+		cmp AL, 'd'
+		je retornar_num2
+		cmp AL, 'f'
+		je retornar_num3
+		cmp AL, 'j'
+		je retornar_num4
+		cmp AL, 'k'
+		je retornar_num5
+		cmp AL, 'l'
+		je retornar_num6
+retornar_num0:
+		mov AL, 00
+		ret
+retornar_num1:
+		mov AL, 01
+		ret
+retornar_num2:
+		mov AL, 02
+		ret
+retornar_num3:
+		mov AL, 03
+		ret
+retornar_num4:
+		mov AL, 04
+		ret
+retornar_num5:
+		mov AL, 05
+		ret
+retornar_num6:
+		mov AL, 06
+		ret
+;;
+;; buscar_vacio_en_columna - busca un espacio vacío en la columna indicada
+;;
+;; ENTRADA: AL -> número de columna o X
+;; SALIDA:  DI -> número de fila con espacio disponible
+;;          DL -> 00 si se obtuvo un espacio disponible
+;;               0ff si no se econtró espacio
+buscar_vacio_en_columna:
+		;; X en AL , Y en DL -> (AL, DL)
+		mov DL, 05
+ciclo_buscar_vacio:
+		;; índice = 7*DL + AL
+		mov DH, AL
+		;; 7*DL = AX
+		mov AL, 07
+		mul DL
+		;; 7*DL + DH
+		;;  AL  + DH
+		add AL, DH
+		;; AX -> índice
+		mov DI, offset tablero
+		add DI, AX
+		;; verifico el contenido
+		mov AL, [DI]
+		cmp AL, 00  		;; verificar si está vacío
+		je retorno_buscar_vacio
+		dec DL
+		mov AL, DH  		;volvemos a colocar la columna deseada en al
+		cmp DL, 00			;verificamos si ya se llego a la fila 0
+		jge ciclo_buscar_vacio
+retorno_fallido_buscar_vacio:
+		mov DL, 0ffh
+		ret
+retorno_buscar_vacio:
+		mov DL, 00
+		ret
+;;
+;; obtener_valor_de_casilla - obtiene el valor de una casilla del tablero
+;;
+;; ENTRADA: BH -> X
+;;          BL -> Y
+;; SALIDA:  DL -> valor
+obtener_valor_de_casilla:
+		;; índice = 7*BL + BH
+		;; 7*BL = AX
+		mov AL, 07
+		mul BL
+		;; 7*BL + BH
+		;;  AL  + BH
+		add AL, BH
+		;; AX -> índice
+		mov DI, offset tablero
+		add DI, AX
+		;; obtengo el contenido
+		mov DL, [DI]
+		ret
+;;
+;; imprimir_tablero - imprime el tablero del juego
+;;
+imprimir_tablero:
+		mov DX, offset encabezado_tablero
+		mov AH, 09
+		int 21
+		;;
+		mov BX,0000
+		;; inicialización de contadores
+		mov SI, 0006
+		xchg SI, CX
+ciclo_columnas:
+		xchg SI, CX
+		mov CX, 0007
+		;;
+		mov DX, offset antes_de_fila
+		mov AH, 09
+		int 21
+		;;
+ciclo_fila:
+		call obtener_valor_de_casilla
+		cmp DL, 00
+		je imprimir_vacia
+		cmp DL, ficha_a
+		je imprimir_ficha_a
+		cmp DL, ficha_b
+		je imprimir_ficha_b
+imprimir_vacia:
+		mov DL, ' '
+		mov AH, 02
+		int 21
+		mov DX, offset entre_columnas
+		mov AH, 09
+		int 21
+		jmp avanzar_en_fila
+imprimir_ficha_a:
+		mov DL, ficha_a
+		mov AH, 02
+		int 21
+		mov DX, offset entre_columnas
+		mov AH, 09
+		int 21
+		jmp avanzar_en_fila
+imprimir_ficha_b:
+		mov DL, ficha_b
+		mov AH, 02
+		int 21
+		mov DX, offset entre_columnas
+		mov AH, 09
+		int 21
+		jmp avanzar_en_fila
+avanzar_en_fila:
+		inc BH
+		loop ciclo_fila
+		mov DL, 0ah
+		mov AH, 02h
+		int 21
+		;;
+		mov BH, 00
+		inc BL
+		xchg SI, CX
+		loop ciclo_columnas
+		;;
+		mov DX, offset pie_de_tablero
+		mov AH, 09
+		int 21
+		ret
 
 fin:
 .EXIT
