@@ -29,7 +29,7 @@ char db ?
 mensaje_nombre_a db "Escriba el nombre del jugador 1: $"
 mensaje_nombre_b db "Escriba el nombre del jugador 2: $"
 nl       db 0a,"$"
-mensaje_jugar    db "Ingrese la columna:",0a, "$"
+mensaje_jugar    db 0ah,"Ingrese la columna:",0a, "$"
 mensaje_fin_juego db 0ah,"No hay mas casillas disponibles, fin del juego",0a,0a,"$"
 mensaje_victoria db 0ah,"Felicidades, ha ganado",0a,0a,"$"
 buffer_nombre db 20,00
@@ -47,14 +47,15 @@ entre_columnas     db " | $"
 pie_de_tablero     db "'---'---'---'---'---'---'---'",0a,"$"
 ficha_actual  db ficha_a
 espacios_usados db 00h
-;;variables para apartado de ayuda
+;;variables para apartado de juego
 menu_juego db "Seleccione modo de juego: ", 0Dh, 0Ah
 			db "		1. Jugador vs Jugador", 0Dh, 0Ah
 			db "		2. Jugador vs Computadora", 0Dh, 0Ah,"$"
 modo_juego db 01h
 semilla dw 00h          ; Variable para almacenar la semilla inicial
 numero_aleatorio db 00h ; Variable para almacenar el número aleatorio generado
-
+mensaje_turno db 0ah,"Turno de: $" ; Mensaje para mostrar el turno del jugador
+mensaje_ficha db 0ah,"Ficha: $" ; Mensaje para mostrar la ficha del jugador
 .CODE
 .STARTUP
 ;; LÓGICA DEL PROGRAMA
@@ -281,6 +282,20 @@ pedir_columna_pvc:
 		je fin_juego
 		mov BL, 0000 	;limpiamos BL
 
+		mov DX, offset mensaje_turno
+		mov AH, 09
+		int 21
+
+		call imprimir_cadena_player
+
+		mov DX, offset mensaje_ficha
+		mov AH, 09
+		int 21
+
+		mov ah, 02h     ; Cargar la función 02h para imprimir un carácter
+		mov dl, ficha_actual ; Cargar el carácter que deseas imprimir en DL
+		int 21h         ; Llamar a la interrupción 21h para imprimir el carácter
+
 		mov DX, offset mensaje_jugar
 		mov AH, 09
 		int 21
@@ -339,6 +354,23 @@ cambiar_player_por_computador:
 
 		mov AL, ficha_b
 		mov [ficha_actual], AL
+		
+		mov DX, offset mensaje_turno
+		mov AH, 09
+		int 21
+
+		mov DX, offset nombre_c
+		mov AH, 09
+		int 21
+
+		mov DX, offset mensaje_ficha
+		mov AH, 09
+		int 21
+
+		mov ah, 02h     ; Cargar la función 02h para imprimir un carácter
+		mov dl, ficha_actual ; Cargar el carácter que deseas imprimir en DL
+		int 21h         ; Llamar a la interrupción 21h para imprimir el carácter
+
 
 		call generar_numero_aleatorio
 
@@ -418,6 +450,20 @@ pedir_columna:
 		cmp BL, 2Ah       ;comparamos si el contador llego a 42
 		je fin_juego
 		mov BL, 0000 	;limpiamos BL
+		
+		mov DX, offset mensaje_turno
+		mov AH, 09
+		int 21
+
+		call imprimir_cadena_player
+
+		mov DX, offset mensaje_ficha
+		mov AH, 09
+		int 21
+
+		mov ah, 02h     ; Cargar la función 02h para imprimir un carácter
+		mov dl, ficha_actual ; Cargar el carácter que deseas imprimir en DL
+		int 21h         ; Llamar a la interrupción 21h para imprimir el carácter
 
 		mov DX, offset mensaje_jugar
 		mov AH, 09
@@ -939,6 +985,32 @@ generar_numero_aleatorio:
 
     ret
 
+imprimir_cadena_player:
+    ; Imprime una cadena de caracteres sin el carácter nulo al final
+
+    mov BX, 0001
+	mov CX, 0000
+
+	cmp [ficha_actual], ficha_a
+	je imprimir_a
+
+	mov CL, [nombre_b]
+	mov DI, offset nombre_b
+	inc DI
+	mov DX, DI
+	mov AH, 40
+	int 21
+	ret
+
+imprimir_a:
+	mov CL, [nombre_a]
+	mov DI, offset nombre_a
+	inc DI
+	mov DX, DI
+	mov AH, 40
+	int 21
+
+    ret
 fin:
 .EXIT
 END
