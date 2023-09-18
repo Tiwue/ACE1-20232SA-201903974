@@ -13,7 +13,6 @@ mensaje_menu db "	Menu de opciones:", 0Dh, 0Ah
              db "		4. Salir", 0Dh, 0Ah
              db "		Elija una opcion (1-4):",0a,0a,"$"
 
-;;variables para apartado de ayuda
 mensaje_input_ayuda_db db 0ah,"Presione 'n' para mostrar las siguientes 20 lineas o 'q' para salir.", 0a, "$"
 mensaje_salir_ayuda_db db "Presione 'q' para salir.", 0a, "$"
 mensaje_error_linea db "No fue posible leer la Linea", 0a, "$"
@@ -30,7 +29,7 @@ char db ?
 mensaje_nombre_a db "Escriba el nombre del jugador 1: $"
 mensaje_nombre_b db "Escriba el nombre del jugador 2: $"
 nl       db 0a,"$"
-mensaje_jugar    db "Ingrese la columna: $"
+mensaje_jugar    db "Ingrese la columna:",0a, "$"
 mensaje_fin_juego db 0ah,"No hay mas casillas disponibles, fin del juego",0a,0a,"$"
 mensaje_victoria db 0ah,"Felicidades, ha ganado",0a,0a,"$"
 buffer_nombre db 20,00
@@ -39,6 +38,7 @@ nombre_a      db 00
               db 20 dup (00)
 nombre_b      db 00
               db 20 dup (00)
+nombre_c db "Computadora",0a,"$"
 tablero       db 2a dup (00)
 encabezado_tablero db "  A   S   D   F   J   K   L  ",0a
                    db " ___ ___ ___ ___ ___ ___ ___ ",0a,"$"
@@ -47,6 +47,14 @@ entre_columnas     db " | $"
 pie_de_tablero     db "'---'---'---'---'---'---'---'",0a,"$"
 ficha_actual  db ficha_a
 espacios_usados db 00h
+;;variables para apartado de ayuda
+menu_juego db "Seleccione modo de juego: ", 0Dh, 0Ah
+			db "		1. Jugador vs Jugador", 0Dh, 0Ah
+			db "		2. Jugador vs Computadora", 0Dh, 0Ah,"$"
+modo_juego db 01h
+semilla dw 00h          ; Variable para almacenar la semilla inicial
+numero_aleatorio db 00h ; Variable para almacenar el número aleatorio generado
+
 .CODE
 .STARTUP
 ;; LÓGICA DEL PROGRAMA
@@ -94,7 +102,7 @@ menu:
 	int 21
 	;;verifica si la tecla presionada es 1
 	cmp AL, 31h
-	je jugar
+	je seleccion_modo_juego
 	;;verifica si la tecla presionada es 2
 	cmp AL, 32h
 	je menu
@@ -225,7 +233,154 @@ error_lectura:
     lea dx, mensaje_error_linea ; Dirección del mensaje de error.
     int 21h             ; Llamar a la interrupción 21h para mostrar el mensaje.
 
-jugar: 
+seleccion_modo_juego:
+	mov DX, offset menu_juego
+	mov AH, 09h
+	int 21
+esperar_tecla_menu_juego:	
+	mov AH, 08h
+	int 21
+	;verifica si la tecla fue 1
+	cmp AL, 31h     
+	je jugar_pvp
+	;verifica si la tecla fue 2
+	cmp AL, 32h
+	je jugar_pvc
+
+	mov DX, offset mensaje_reintente
+	mov AH, 09h
+	int 21
+	jmp esperar_tecla_menu_juego
+
+jugar_pvc:
+
+	mov BL, 02h
+	mov [modo_juego], BL
+
+	mov BL, 00h
+	;; pedimos la cadena de nombre del jugador 1
+	mov DX, offset mensaje_nombre_a
+	mov AH, 09
+	int 21
+	;;leemos la cadena
+	mov DX, offset buffer_nombre
+	mov AH, 0a
+	int 21
+	;;copiamos la cadena
+	mov DI, offset nombre_a
+	call copiar_cadena
+	;;damos un salto de linea
+	mov DX, offset nl
+	mov AH, 09
+	int 21
+	
+pedir_columna_pvc:
+
+		mov BL, [espacios_usados]  ;tomamos el valor del contador de espacios usados
+		cmp BL, 2Ah       ;comparamos si el contador llego a 42
+		je fin_juego
+		mov BL, 0000 	;limpiamos BL
+
+		mov DX, offset mensaje_jugar
+		mov AH, 09
+		int 21
+		mov AH, 01
+		int 21
+
+		cmp AL, '0'
+		je fin
+		;; AL -> columna
+		call pasar_de_id_a_numero
+		;; AL -> número de columna
+		call buscar_vacio_en_columna
+		;; DL -> 00 si se logró encontrar un espacio
+
+		cmp DL, 0ffh	;si no hay espacio vacio en esta columna entonces volvemos a pedir la columna
+		je pedir_columna
+		;; DI -> dirección de la celda disponible
+		;; Se coloca ficha
+		mov BL, [espacios_usados]  ;aumentamos el contador de espacios usados
+		add BL, 01
+		mov [espacios_usados], BL
+
+		mov BX, 0000	;;limpiamos BX
+
+		mov AL, ficha_actual
+		mov [DI], AL
+		;;
+		mov DX, offset nl
+		mov AH, 09
+		int 21
+		;; - Imprimir tablero [OK]
+		call imprimir_tablero
+
+		;; - Verificar victoria
+		call verificar_victoria
+
+		; Obtiene la hora del sistema como semilla inicial
+    	mov ah, 2Ch
+    	int 21h
+    	mov [semilla], dx
+
+		;; - Cambiar turno a computadora
+		jmp cambiar_player_por_computador
+		;;
+		mov AL, ficha_a
+		mov [ficha_actual], AL
+
+		jmp pedir_columna_pvc
+
+cambiar_player_por_computador:
+
+		mov BL, [espacios_usados]  ;tomamos el valor del contador de espacios usados
+		cmp BL, 2Ah       ;comparamos si el contador llego a 42
+		je fin_juego
+		mov BL, 0000 	;limpiamos BL
+
+		mov AL, ficha_b
+		mov [ficha_actual], AL
+
+		call generar_numero_aleatorio
+
+		mov AL, [numero_aleatorio]		;obtenemos el numero aleatorio
+		call buscar_vacio_en_columna	;buscamos un espacio vacio en la columna el resultado se almacena en D
+
+		cmp DL, 0ffh	;si no hay espacio vacio en esta columna entonces volvemos a pedir la columna
+		je cambiar_player_por_computador
+
+		;; DI -> dirección de la celda disponible
+		;; Se coloca ficha
+		mov BL, [espacios_usados]  ;aumentamos el contador de espacios usados
+		add BL, 01
+		mov [espacios_usados], BL
+
+		mov BX, 0000	;;limpiamos BX
+
+		mov AL, ficha_actual
+		mov [DI], AL
+		;;
+		mov DX, offset nl
+		mov AH, 09
+		int 21
+		;; - Imprimir tablero [OK]
+		call imprimir_tablero
+
+		;; - Verificar victoria
+		call verificar_victoria
+
+		;;jmp pedir_columna
+		;; - Guardar tablero
+		;; - Cargar tablero
+
+		mov AL, ficha_a
+		mov [ficha_actual], AL
+		jmp pedir_columna_pvc
+
+jugar_pvp: 
+	
+	mov BL, 01h
+	mov [modo_juego], BL
+
 	;; pedimos la cadena de nombre del jugador 1
 	mov DX, offset mensaje_nombre_a
 	mov AH, 09
@@ -309,6 +464,7 @@ pedir_columna:
 		mov [ficha_actual], AL
 
 		jmp pedir_columna
+
 cambiar_a_por_b:
 		mov AL, ficha_b
 		mov [ficha_actual], AL
@@ -750,6 +906,37 @@ victoria:
     mov ah, 09h
     lea dx, mensaje_victoria
     int 21h
+    ret
+
+generar_numero_aleatorio:
+    ; Genera un número aleatorio entre 0 y 7 basado en la hora del sistema
+
+    ; Carga la semilla en DX para el generador de números pseudoaleatorios
+    mov dx, [semilla]
+
+    ; Multiplica DX por 0x5DEECE66D (una constante común en generadores)
+    mov ax, dx
+    mov cx, 5DEEh
+    mov bx, 66Dh
+    mul cx
+    mov cx, dx
+    mul bx
+    add ax, cx
+
+    ; Agrega la hora del sistema actual a DX
+    mov ah, 2Ch
+    int 21h
+    add dx, ax
+
+    ; Genera un número entre 0 y 7
+    and dx, 07h
+
+    ; Almacena el resultado en [numero_aleatorio]
+    mov [numero_aleatorio], dl
+
+    ; Actualiza la semilla
+    mov [semilla], dx
+
     ret
 
 fin:
