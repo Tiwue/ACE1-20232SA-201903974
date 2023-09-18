@@ -269,6 +269,9 @@ pedir_columna:
 		int 21
 		mov AH, 01
 		int 21
+
+		cmp AL, '0'
+		je fin
 		;; AL -> columna
 		call pasar_de_id_a_numero
 		;; AL -> número de columna
@@ -612,6 +615,67 @@ verificar_victoria:
             cmp si, di
             jb verificar_vertical
     
+	; Verificar victoria en las diagonales
+    mov si, 00 ; Índice de inicio del tablero
+    verificar_diagonales:
+		mov di, 00h
+        add di, 12h ; posicion maxima en donde se puede encontrar una victoria en diagonal
+        verificar_diagonal:
+            mov al, [tablero+si]
+            cmp al, ficha_a
+            je jugador1_encontrado_diagonal
+            cmp al, ficha_b
+            je jugador2_encontrado_diagonal
+            jmp siguiente_celda_diagonal
+        jugador1_encontrado_diagonal:
+            mov al, [tablero+si+8h]
+            cmp al, ficha_a
+            je jugador1_encontrado_diagonal2
+            jmp siguiente_celda_diagonal
+		jugador1_encontrado_diagonal2:
+			mov al, [tablero+si+10h]
+			cmp al, ficha_a
+			je jugador1_encontrado_diagonal3
+			jmp siguiente_celda_diagonal
+		jugador1_encontrado_diagonal3:
+			mov al, [tablero+si+18h]
+			cmp al, ficha_a
+			je victoria
+			jmp siguiente_celda_diagonal
+
+        jugador2_encontrado_diagonal:
+            mov al, [tablero+si+8h]
+            cmp al, ficha_b
+            je jugador2_encontrado_diagonal2
+			jmp siguiente_celda_diagonal
+		jugador2_encontrado_diagonal2:
+			mov al, [tablero+si+10h]
+			cmp al, ficha_b
+			je jugador2_encontrado_diagonal3
+			jmp siguiente_celda_diagonal
+		jugador2_encontrado_diagonal3:
+			mov al, [tablero+si+18h]
+			cmp al, ficha_b
+			je victoria
+			jmp siguiente_celda_diagonal
+		
+        siguiente_celda_diagonal:
+            inc si
+			cmp si, 04h
+			je siguiente_celda_diagonal
+			cmp si, 05h
+			je siguiente_celda_diagonal
+			cmp si, 06h
+			je siguiente_celda_diagonal
+			cmp si, 0Ch
+			je siguiente_celda_diagonal
+			cmp si, 0Dh
+			je siguiente_celda_diagonal
+			cmp si, 14h
+			je siguiente_celda_diagonal
+            cmp si, di
+            jb verificar_diagonal
+
     ; No se encontró ninguna victoria
     ret
 
