@@ -676,6 +676,73 @@ verificar_victoria:
             cmp si, di
             jb verificar_diagonal
 
+
+	; Verificar victoria en las diagonales inversas
+    mov si, 00 ; Índice de inicio del tablero
+    verificar_contradiagonales:
+		mov di, 00h
+        add di, 15h ; posicion maxima en donde se puede encontrar una victoria en diagonal
+        verificar_contradiagonal:
+            mov al, [tablero+si]
+            cmp al, ficha_a
+            je jugador1_encontrado_contradiagonal
+            cmp al, ficha_b
+            je jugador2_encontrado_contradiagonal
+            jmp siguiente_celda_contradiagonal
+        jugador1_encontrado_contradiagonal:
+            mov al, [tablero+si+6h]
+            cmp al, ficha_a
+            je jugador1_encontrado_contradiagonal2
+            jmp siguiente_celda_contradiagonal
+		jugador1_encontrado_contradiagonal2:
+			mov al, [tablero+si+0Ch]
+			cmp al, ficha_a
+			je jugador1_encontrado_contradiagonal3
+			jmp siguiente_celda_contradiagonal
+		jugador1_encontrado_contradiagonal3:
+			mov al, [tablero+si+12h]
+			cmp al, ficha_a
+			je victoria
+			jmp siguiente_celda_contradiagonal
+
+        jugador2_encontrado_contradiagonal:
+            mov al, [tablero+si+6h]
+            cmp al, ficha_b
+            je jugador2_encontrado_contradiagonal2
+			jmp siguiente_celda_contradiagonal
+		jugador2_encontrado_contradiagonal2:
+			mov al, [tablero+si+0Ch]
+			cmp al, ficha_b
+			je jugador2_encontrado_contradiagonal3
+			jmp siguiente_celda_contradiagonal
+		jugador2_encontrado_contradiagonal3:
+			mov al, [tablero+si+12h]
+			cmp al, ficha_b
+			je victoria
+			jmp siguiente_celda_contradiagonal
+		
+        siguiente_celda_contradiagonal:
+            inc si
+			cmp si, 00h
+			je siguiente_celda_contradiagonal
+			cmp si, 01h
+			je siguiente_celda_contradiagonal
+			cmp si, 02h
+			je siguiente_celda_contradiagonal
+			cmp si, 07h
+			je siguiente_celda_contradiagonal
+			cmp si, 08h
+			je siguiente_celda_contradiagonal
+			cmp si, 09h
+			je siguiente_celda_contradiagonal
+			cmp si, 0Eh
+			je siguiente_celda_contradiagonal
+			cmp si, 0Fh
+			je siguiente_celda_contradiagonal
+			cmp si, 10h
+			je siguiente_celda_contradiagonal
+            cmp si, di
+            jb verificar_contradiagonal
     ; No se encontró ninguna victoria
     ret
 
