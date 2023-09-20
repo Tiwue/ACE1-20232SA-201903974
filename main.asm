@@ -34,28 +34,39 @@ mensaje_fin_juego db 0ah,"No hay mas casillas disponibles, fin del juego",0a,0a,
 mensaje_victoria db 0ah,"Felicidades, ha ganado",0a,0a,"$"
 buffer_nombre db 20,00
               db 20 dup (00)
+nombre_c db "Computadora",0a,"$"
+modo_juego db 01h
+ficha_actual  db ficha_a
 nombre_a      db 00
               db 20 dup (00)
 nombre_b      db 00
               db 20 dup (00)
-nombre_c db "Computadora",0a,"$"
 tablero       db 2a dup (00)
 encabezado_tablero db "  A   S   D   F   J   K   L  ",0a
                    db " ___ ___ ___ ___ ___ ___ ___ ",0a,"$"
 antes_de_fila      db "| $"
 entre_columnas     db " | $"
 pie_de_tablero     db "'---'---'---'---'---'---'---'",0a,"$"
-ficha_actual  db ficha_a
 espacios_usados db 00h
 ;;variables para apartado de juego
 menu_juego db "Seleccione modo de juego: ", 0Dh, 0Ah
 			db "		1. Jugador vs Jugador", 0Dh, 0Ah
 			db "		2. Jugador vs Computadora", 0Dh, 0Ah,"$"
-modo_juego db 01h
 semilla dw 00h          ; Variable para almacenar la semilla inicial
 numero_aleatorio db 00h ; Variable para almacenar el número aleatorio generado
 mensaje_turno db 0ah,"Turno de: $" ; Mensaje para mostrar el turno del jugador
 mensaje_ficha db 0ah,"Ficha: $" ; Mensaje para mostrar la ficha del jugador
+
+;;variables para guardar partida
+nombre_guardar  db 0c dup (00),00 
+extension_guardar db ".SAV",00
+buffer_entrada db 0ff,00
+               db 0ff dup (00)
+mensaje_guardar db "Escriba el nombre sin extension del archivo: $"
+handle_guardar dw 0000
+numero db 06 dup (30)
+negativo db 00
+mensaje_error_guardar db "No fue posible guardar el archivo", 0a, "$"
 .CODE
 .STARTUP
 ;; LÓGICA DEL PROGRAMA
@@ -304,6 +315,8 @@ pedir_columna_pvc:
 
 		cmp AL, '0'
 		je fin
+		cmp AL, 'w'
+		je guardar_partida
 		;; AL -> columna
 		call pasar_de_id_a_numero
 		;; AL -> número de columna
@@ -443,7 +456,6 @@ jugar_pvp:
 	mov AH, 09
 	int 21
 
-
 pedir_columna:
 
 		mov BL, [espacios_usados]  ;tomamos el valor del contador de espacios usados
@@ -473,6 +485,8 @@ pedir_columna:
 
 		cmp AL, '0'
 		je fin
+		cmp AL, 'w'
+		je guardar_partida
 		;; AL -> columna
 		call pasar_de_id_a_numero
 		;; AL -> número de columna
@@ -1011,6 +1025,119 @@ imprimir_a:
 	int 21
 
     ret
+
+guardar_partida:
+		mov DX, offset nl
+		mov AH, 09
+		int 21
+		mov DX, offset mensaje_guardar
+		mov AH, 09
+		int 21
+		mov DX, offset buffer_entrada
+		mov AH, 0a
+		int 21
+		;;
+		mov DX, offset nl
+		mov AH, 09
+		int 21
+		;; DI <- primer byte del buffer
+		mov DI, offset buffer_entrada
+		inc DI
+		;; DI <- segundo byte, tamaño de cadena leida
+		mov AL, [DI]
+		cmp AL, 08
+		ja guardar_partida
+		;;; cadena correcta
+		call copiar_y_agregar_extension
+		;;
+		mov CX, 0000
+		mov DX, offset nombre_guardar
+		mov AH, 3c
+		int 21
+		;; AX -> handle
+		mov [handle_guardar], AX
+		;; Se guardará nombre_a, nombre_b, tablero y ficha actual
+		mov BX, [handle_guardar]
+		mov CX, 006Eh
+		mov DX, offset modo_juego
+		mov AH, 40
+		int 21
+		;;
+		mov AH, 3e
+		int 21
+		;;
+		jmp pedir_columna
+		;; - Cargar tablero
+;;
+;; imprimir_nombre_y_ficha_actual
+;;
+imprimir_nombre_y_ficha_actual:
+		mov AL, [ficha_actual]
+		mov BX, offset mensaje_ficha
+		add BX, 02
+		mov [BX], AL
+		sub BX, 02
+		cmp AL, ficha_a
+		jne imprimir_nombre_b
+		;; imprimir nombre_a
+		mov BX, 0001
+		mov CX, 0000
+		mov CL, [nombre_a]
+		mov DX, offset nombre_a
+		inc DX
+		mov AH, 40
+		int 21
+		jmp imprimir_ficha
+imprimir_nombre_b:
+		mov BX, 0001
+		mov CX, 0000
+		mov CL, [nombre_b]
+		mov DX, offset nombre_b
+		inc DX
+		mov AH, 40
+		int 21
+imprimir_ficha:
+		mov DX, offset mensaje_ficha
+		mov AH, 09
+		int 21
+		ret
+;;
+;; copiar_y_agregar_extension
+;;   ENTRADAS 
+;;     DI -> dirección del buffer de entrada
+;;     SI -> dirección a donde copiar
+;;
+copiar_y_agregar_extension:
+		mov CX, 0000
+		mov CL, 0c
+		mov BX, offset nombre_guardar
+limpiar_nombre_guardar:
+		mov AL, 00
+		mov [BX], AL
+		inc BX
+		loop limpiar_nombre_guardar
+		;;
+		mov SI, offset nombre_guardar
+		mov CX, 0000
+		mov CL, [DI]
+		inc DI
+ciclo_copiar_sin_extension:
+		mov AL, [DI]
+		mov [SI], AL
+		inc DI
+		inc SI
+		loop ciclo_copiar_sin_extension
+		;;;
+		mov CX, 0000
+		mov CL, 04  ;; ".SAV"
+		mov DI, offset extension_guardar
+ciclo_copiar_extension:
+		mov AL, [DI]
+		mov [SI], AL
+		inc DI
+		inc SI
+		loop ciclo_copiar_extension
+		ret
 fin:
 .EXIT
 END
