@@ -32,6 +32,7 @@ nl       db 0a,"$"
 mensaje_jugar    db 0ah,"Ingrese la columna:",0a, "$"
 mensaje_fin_juego db 0ah,"No hay mas casillas disponibles, fin del juego",0a,0a,"$"
 mensaje_victoria db 0ah,"Felicidades, ha ganado",0a,0a,"$"
+mensaje_empate  db 0ah,"El juego ha terminado en Empate",0a,0a,"$"
 buffer_nombre db 20,00
               db 20 dup (00)
 nombre_c db "Computadora",0a,"$"
@@ -290,7 +291,7 @@ pedir_columna_pvc:
 
 		mov BL, [espacios_usados]  ;tomamos el valor del contador de espacios usados
 		cmp BL, 2Ah       ;comparamos si el contador llego a 42
-		je fin_juego
+		je empate
 		mov BL, 0000 	;limpiamos BL
 
 		mov DX, offset mensaje_turno
@@ -362,7 +363,7 @@ cambiar_player_por_computador:
 
 		mov BL, [espacios_usados]  ;tomamos el valor del contador de espacios usados
 		cmp BL, 2Ah       ;comparamos si el contador llego a 42
-		je fin_juego
+		je empate
 		mov BL, 0000 	;limpiamos BL
 
 		mov AL, ficha_b
@@ -460,7 +461,7 @@ pedir_columna:
 
 		mov BL, [espacios_usados]  ;tomamos el valor del contador de espacios usados
 		cmp BL, 2Ah       ;comparamos si el contador llego a 42
-		je fin_juego
+		je empate
 		mov BL, 0000 	;limpiamos BL
 		
 		mov DX, offset mensaje_turno
@@ -720,6 +721,7 @@ avanzar_en_fila:
 		ret
 
 fin_juego:
+		call limpiar_variables 
 		mov DX, offset mensaje_fin_juego
 		mov AH, 09h ; Función 09h: Mostrar un mensaje.
 		int 21h ; Llamar a la interrupción 21h para mostrar el mensaje.
@@ -883,6 +885,8 @@ verificar_victoria:
 			je siguiente_celda_diagonal
 			cmp si, 06h
 			je siguiente_celda_diagonal
+			cmp si, 0Bh
+			je siguiente_celda_diagonal
 			cmp si, 0Ch
 			je siguiente_celda_diagonal
 			cmp si, 0Dh
@@ -963,10 +967,20 @@ verificar_victoria:
     ret
 
 victoria:
+
+	call limpiar_variables
     mov ah, 09h
     lea dx, mensaje_victoria
     int 21h
-    ret
+	jmp menu
+
+empate:
+
+	call limpiar_variables
+    mov ah, 09h
+    lea dx, mensaje_empate
+    int 21h
+	jmp menu
 
 generar_numero_aleatorio:
     ; Genera un número aleatorio entre 0 y 7 basado en la hora del sistema
@@ -1137,6 +1151,28 @@ ciclo_copiar_extension:
 		inc DI
 		inc SI
 		loop ciclo_copiar_extension
+		ret
+limpiar_variables:
+		mov [ficha_actual], ficha_a
+		mov [espacios_usados], 00h
+		mov [modo_juego], 01h
+		mov AL, 21h
+		mov DI, offset nombre_a
+		mov AL, 6Ch 			;;cantidad de bytes a limpiar en este caso son 108 = 1+32 + 1+32 + 42 porque las variables son contiguas
+		call limpiar_cadena
+		ret
+
+;; limpiar_cadena - limpia una cadena
+;;    ENTRADAS: DI -> dirección hacia donde limpiar
+;;	            AL -> tamano de bytes a limpiar
+limpiar_cadena:
+		mov CX, 0000  ;; limpiando CX
+		mov CL, AL		;;especificamos el tamaño de la cadena para el ciclo de copiado este valor es usado por la instruccion loop
+ciclo_limpiar_cadena:
+		mov AL, 00h
+		mov [DI], AL
+		inc DI
+		loop ciclo_limpiar_cadena
 		ret
 fin:
 .EXIT
