@@ -37,6 +37,7 @@ buffer_nombre db 20,00
               db 20 dup (00)
 nombre_c db "Computadora",0a,"$"
 modo_juego db 01h
+espacios_usados db 00h
 ficha_actual  db ficha_a
 nombre_a      db 00
               db 20 dup (00)
@@ -48,7 +49,7 @@ encabezado_tablero db "  A   S   D   F   J   K   L  ",0a
 antes_de_fila      db "| $"
 entre_columnas     db " | $"
 pie_de_tablero     db "'---'---'---'---'---'---'---'",0a,"$"
-espacios_usados db 00h
+
 ;;variables para apartado de juego
 menu_juego db "Seleccione modo de juego: ", 0Dh, 0Ah
 			db "		1. Jugador vs Jugador", 0Dh, 0Ah
@@ -63,8 +64,11 @@ nombre_guardar  db 0c dup (00),00
 extension_guardar db ".SAV",00
 buffer_entrada db 0ff,00
                db 0ff dup (00)
+buffer_carga db 0ff,00
+               db 0ff dup (00)
 mensaje_guardar db "Escriba el nombre sin extension del archivo: $"
 handle_guardar dw 0000
+handle_cargar dw 0000
 numero db 06 dup (30)
 negativo db 00
 mensaje_error_guardar db "No fue posible guardar el archivo", 0a, "$"
@@ -118,7 +122,7 @@ menu:
 	je seleccion_modo_juego
 	;;verifica si la tecla presionada es 2
 	cmp AL, 32h
-	je menu
+	je cargar_partida
 	;;verifica si la tecla presionada es 3
 	cmp AL, 33h
 	je ayuda
@@ -1072,7 +1076,7 @@ guardar_partida:
 		mov [handle_guardar], AX
 		;; Se guardará nombre_a, nombre_b, tablero y ficha actual
 		mov BX, [handle_guardar]
-		mov CX, 006Eh
+		mov CX, 006Fh
 		mov DX, offset modo_juego
 		mov AH, 40
 		int 21
@@ -1080,7 +1084,11 @@ guardar_partida:
 		mov AH, 3e
 		int 21
 		;;
-		jmp pedir_columna
+		mov AL, [modo_juego]
+		cmp AL, 01h
+		je pedir_columna
+		cmp AL, 02h
+		je pedir_columna_pvc
 		;; - Cargar tablero
 ;;
 ;; imprimir_nombre_y_ficha_actual
@@ -1174,6 +1182,75 @@ ciclo_limpiar_cadena:
 		inc DI
 		loop ciclo_limpiar_cadena
 		ret
+
+
+cargar_partida:
+	mov DX, offset nl
+	mov AH, 09
+	int 21
+	mov DX, offset mensaje_guardar
+	mov AH, 09
+	int 21
+	mov DX, offset buffer_carga
+	mov AH, 0a
+	int 21
+	;;
+	mov DX, offset nl
+	mov AH, 09
+	int 21
+	;; DI <- primer byte del buffer
+	mov DI, offset buffer_carga
+	inc DI
+	;; DI <- segundo byte, tamaño de cadena leida
+	mov AL, [DI]
+	cmp AL, 08
+	ja cargar_partida
+	;;; cadena correcta
+	call copiar_y_agregar_extension
+	;;
+	; Abrir el archivo para lectura.
+	mov DX, offset nombre_guardar  		; Nombre del archivo a abrir.
+	mov AL, 0h          		; Modo de apertura: lectura.
+	mov AH, 3Dh         		; Función 3Dh: Abrir archivo.
+	int 21h             		; Llamar a la interrupción 21h.
+
+	jc error            ; Verificar si hubo un error al abrir el archivo.
+
+	mov BX, AX          ; Guardar el descriptor de archivo en variable.
+
+leer_info_partida:
+	;;guardamos todo el contenido del archivo en el buffer
+    mov ah, 3Fh         ; Función 3Fh: Leer desde el archivo.
+    mov dx, offset buffer      ; Dirección del buffer.
+    mov cx, 006Fh	   		; leer 110 caracteres
+    int 21h             ; Llamar a la interrupción 21h para leer desde el archivo.
+
+
+	jc error_lectura    ; Verificar si hubo un error al leer el archivo.
+	mov si, offset buffer
+	mov DI, offset modo_juego
+	mov CX, 006Fh
+	;rep movsb
+	
+copyLoop:
+    mov al, [si]        ; Lee un byte del búfer
+    mov [di], al        ; Copia el byte a la variable
+    inc si              ; Avanza al siguiente byte en el búfer
+    inc di              ; Avanza al siguiente byte en la variable
+    loop copyLoop       ; Repite hasta copiar todos los bytes
+
+	mov AH, 3Eh		 ; Función 3Eh: Cerrar archivo.
+	mov BX, BX          ; Descriptor de archivo.
+	int 21h             ; Llamar a la interrupción 21h para cerrar el archivo.
+
+	call imprimir_tablero
+
+	MOV AL, [modo_juego]
+	CMP AL, 01h
+	je pedir_columna
+	cmp AL, 02h
+	je pedir_columna_pvc
+
 fin:
 .EXIT
 END
