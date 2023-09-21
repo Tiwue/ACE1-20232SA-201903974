@@ -72,6 +72,22 @@ handle_cargar dw 0000
 numero db 06 dup (30)
 negativo db 00
 mensaje_error_guardar db "No fue posible guardar el archivo", 0a, "$"
+
+;;variables para reporte
+parte1 db "<body style=""text-align:center""><h1>Practica 3</h1><h2>Resultado: "
+parte2 db "</h2><h3>Jugador O:"
+parte3 db "</h3><h3>Jugador X:"
+parte4 db "</h3>"
+parte5 db "</body>"
+fichas_x_1 db "<table style=""margin:auto""><tr><td>X</td></tr><tr><td>X</td></tr><tr><td>X</td></tr><tr><td>X</td></tr></table>"
+fichas_x_2 db "<table style=""margin:auto""><tr><td>X</td><td>X</td></tr><tr><td>X</td><td>X</td></tr></table>"
+fichas_x_3 db "<table style=""margin:auto""><tr><td>X</td><td></td><td></td><td></td></tr><tr><td></td><td>X</td><td></td><td></td></tr><tr><td></td><td></td><td>X</td><td></td></tr><tr><td></td><td></td><td></td><td>X</td></tr></table>"
+fichas_x_4 db "<table style=""margin:auto""><tr><td></td><td></td><td></td><td>X</td></tr><tr><td></td><td></td><td>X</td><td></td></tr><tr><td></td><td>X</td><td></td><td></td></tr><tr><td>X</td><td></td><td></td><td></td></tr></table>"
+
+fichas_o_1 db "<table style=""margin:auto""><tr><td>O</td></tr><tr><td>O</td></tr><tr><td>O</td></tr><tr><td>O</td></tr></table>"
+fichas_o_2 db "<table style=""margin:auto""><tr><td>O</td><td>O</td></tr><tr><td>O</td><td>O</td></tr></table>"
+fichas_o_3 db "<table style=""margin:auto""><tr><td>O</td><td></td><td></td><td></td></tr><tr><td></td><td>O</td><td></td><td></td></tr><tr><td></td><td></td><td>O</td><td></td></tr><tr><td></td><td></td><td></td><td>O</td></tr></table>"
+fichas_o_4 db "<table style=""margin:auto""><tr><td></td><td></td><td></td><td>O</td></tr><tr><td></td><td></td><td>O</td><td></td></tr><tr><td></td><td>O</td><td></td><td></td></tr><tr><td>O</td><td></td><td></td><td></td></tr></table>"
 .CODE
 .STARTUP
 ;; LÓGICA DEL PROGRAMA
