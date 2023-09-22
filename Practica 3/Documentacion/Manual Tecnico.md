@@ -1,3 +1,30 @@
+# Manual Técnico
+
+Se desarrolló una versión en consola del juego Connect4, permite partidas jugador vs jugador, jugador vs Computador, adicional incluye la funcionalidad de guardar, cargar partidas y generar un reporte con los datos al finalizar cada partida
+
+# Práctica 4
+
+## Requisitos
+
+Para poder desarrollar esta práctica y para realizar modificaciones futuras es necesaria la instalación de los siguientes recursos:
+
+1. DosBox 
+    - Para emular el sistema operativo DOS o MS-DOS
+
+2. MASM 611
+    - Para compilar el código
+
+3. IDE/Editor de Código
+    - Para realizar las modificaciones al código
+
+## Código
+
+Todo el código se encuentra dentro de un unico archivo: main.asm
+
+### Variables Globales
+Estas variables son necesarias para mostrar mensajes en pantalla, guardar información al momento de leer archivos, manejar los cambios en el juego o para guardar la estructura basica que tendrán los reportes.
+
+```asm
 .RADIX 16
 .MODEL small
 ficha_a  equ 'O'
@@ -99,9 +126,13 @@ str_pvp db "Jugador vs Jugador",0
 str_pvc db "Jugador vs Computadora",0
 resultado_juego db 00h
 combinacion db 00h
-.CODE
-.STARTUP
-;; LÓGICA DEL PROGRAMA
+```
+
+### Inicio
+
+Con estas secciones podemos limpiar la pantalla, mostrar el encabezado inicial y reconocer cuando el usuario presiona enter.
+
+```assembly
 inicio:
     mov ah, 06h    ; Función 06h: Scroll up (borrar pantalla)
     mov al, 0       ; Valor de caracteres para rellenar la pantalla (0 en blanco)
@@ -137,6 +168,15 @@ no_se_presiono:
 	;; se modificó el registro de banderas
 	je menu
 	jmp no_se_presiono
+
+```
+
+
+### Menu
+
+Esta etiqueta se encarga de mostrar las opciones del menu principal y reconocer la tecla que el usuario presiona
+
+```asm
 menu:
     mov DX, offset mensaje_menu
 	mov AH, 09h
@@ -157,6 +197,14 @@ menu:
 	cmp AL, 34h
 	je fin
 	jmp menu
+
+```
+
+### Ayuda
+
+Estas etiquetas realizan la lectura del archivo de ayuda el cual debe llamarse especificamente "AYUDA.TXT", lee caracter por caracter, verifica si es valido y los muestra hasta completar 20 lineas, tambien verifica que el usuario presione las teclas 'n' o 'q' para continuar o cerrar el apartado de ayuda.
+
+```asm
 ayuda:
 	; Abrir el archivo para lectura.
 	mov DX, offset archivo_db  		; Nombre del archivo a abrir.
@@ -276,7 +324,12 @@ error_lectura:
     mov ah, 09h         ; Función 09h: Mostrar un mensaje.
     lea dx, mensaje_error_linea ; Dirección del mensaje de error.
     int 21h             ; Llamar a la interrupción 21h para mostrar el mensaje.
+```
 
+
+### Modo de Juego
+Estas secciones de codigo se encargan de mostrar el mensaje de seleccion de modos de juego y reconocer la elección del usuario
+```asm
 seleccion_modo_juego:
 	mov DX, offset menu_juego
 	mov AH, 09h
@@ -295,7 +348,12 @@ esperar_tecla_menu_juego:
 	mov AH, 09h
 	int 21
 	jmp esperar_tecla_menu_juego
+```
 
+
+### Juego Jugador vs PC
+Estas secciones se encargan de solicitar el nombre del jugador, solicitar y verificar la columna seleccionada por el jugador y realizar el cambio entre turno de computadora y jugador.
+```ASM
 jugar_pvc:
 
 	mov BL, 02h
@@ -452,7 +510,12 @@ cambiar_player_por_computador:
 		mov AL, ficha_a
 		mov [ficha_actual], AL
 		jmp pedir_columna_pvc
+```
+### Juego Jugador vs Jugador
 
+Estas secciones se encargan de solicitar los nombres de los jugadores, solicitar y verificar la columna seleccionada por el jugador actual y realizar el cambio entre turno de los jugadores.
+
+```
 jugar_pvp: 
 	
 	mov BL, 01h
@@ -564,10 +627,13 @@ cambiar_a_por_b:
 		;; - Guardar tablero
 		;; - Cargar tablero
 		jmp fin
+```
 
+### Guardado de Nombres
 
-;; copiar_cadena - copia una cadena
-;;    ENTRADAS: DI -> dirección hacia donde guardar
+estas subrutinas nos permite guardar los nombres de los usuarios cada vez que se inicia una nueva partida
+
+```asm
 copiar_cadena:
 		;; DI tengo ^
 		mov SI, offset buffer_nombre 	;tomamos la direccion del primer byte del buffer
@@ -586,7 +652,13 @@ ciclo_copiar_cadena:
 		inc DI
 		loop ciclo_copiar_cadena
 		ret
+```
 
+### Busqueda de espacio en columna
+
+Las siguientes subrutinas permiten identificar la columna en la que el usuario desea colocar una ficha y verificar si existe estacio disponible en dicha columna.
+
+```asm
 ;; pasar_de_id_a_numero - pasa de un id de columna a un número
 ;;
 ;; SALIDA:  AL -> número de columna o coordenada X
@@ -682,6 +754,14 @@ obtener_valor_de_casilla:
 		;; obtengo el contenido
 		mov DL, [DI]
 		ret
+```
+
+
+### Mostrar Tablero
+
+Las siguientes subrutinas permiten mostrar el tablero en pantalla con las fichas que han sido colocadas por los usuarios en la partida actual.
+
+```asm
 ;;
 ;; imprimir_tablero - imprime el tablero del juego
 ;;
@@ -750,17 +830,12 @@ avanzar_en_fila:
 		mov AH, 09
 		int 21
 		ret
+```
+### Verificacion de Victoria
 
-fin_juego:
-		call limpiar_variables 
-		mov DX, offset mensaje_fin_juego
-		mov AH, 09h ; Función 09h: Mostrar un mensaje.
-		int 21h ; Llamar a la interrupción 21h para mostrar el mensaje.
-		jmp menu 
-;;
-;; verificar_victoria
-;;
+Estas subrutinas verifican si existe una combinacion de 4 fichas continuas para el turno actual y envia a la subrutina de victoria para posteriormente regresar al menú.
 
+```asm
 verificar_victoria:
     ; Verificar victoria en las filas
     mov cx, 06 ; Número de filas
@@ -1015,19 +1090,13 @@ victoria:
     int 21h
 
 	jmp menu
+```
 
-empate:
-	mov al, 00h
-	mov [resultado_juego], al
-	call generar_reporte
+### Generar numero aleatorio
 
-	call limpiar_variables
-    mov ah, 09h
-    lea dx, mensaje_empate
-    int 21h
+Subrutina para obtener una columna aleatoria para el turno de la computadora en el modo PvC.
 
-	jmp menu
-
+```asm
 generar_numero_aleatorio:
     ; Genera un número aleatorio entre 0 y 7 basado en la hora del sistema
 
@@ -1058,7 +1127,12 @@ generar_numero_aleatorio:
     mov [semilla], dx
 
     ret
+```
 
+### Imprimir nombres de jugadores
+Esta subrutina permite imprimir en la consola el nombre del usuario con el turno actual.
+
+```asm
 imprimir_cadena_player:
     ; Imprime una cadena de caracteres sin el carácter nulo al final
 
@@ -1085,6 +1159,13 @@ imprimir_a:
 	int 21
 
     ret
+```
+
+### Guardar partida
+
+Subrutina para solicitar el nombre del archivo con extensión ".SAV" y escribir el contenido de la partida actual para recuperarlo posteriormente.
+
+```
 
 guardar_partida:
 		mov DX, offset nl
@@ -1132,44 +1213,14 @@ guardar_partida:
 		cmp AL, 02h
 		je pedir_columna_pvc
 		;; - Cargar tablero
-;;
-;; imprimir_nombre_y_ficha_actual
-;;
-imprimir_nombre_y_ficha_actual:
-		mov AL, [ficha_actual]
-		mov BX, offset mensaje_ficha
-		add BX, 02
-		mov [BX], AL
-		sub BX, 02
-		cmp AL, ficha_a
-		jne imprimir_nombre_b
-		;; imprimir nombre_a
-		mov BX, 0001
-		mov CX, 0000
-		mov CL, [nombre_a]
-		mov DX, offset nombre_a
-		inc DX
-		mov AH, 40
-		int 21
-		jmp imprimir_ficha
-imprimir_nombre_b:
-		mov BX, 0001
-		mov CX, 0000
-		mov CL, [nombre_b]
-		mov DX, offset nombre_b
-		inc DX
-		mov AH, 40
-		int 21
-imprimir_ficha:
-		mov DX, offset mensaje_ficha
-		mov AH, 09
-		int 21
-		ret
-;; copiar_y_agregar_extension
-;;   ENTRADAS 
-;;     DI -> dirección del buffer de entrada
-;;     SI -> dirección a donde copiar
-;;
+```
+
+### Guardar nombre de archivo
+
+Subrutina para guardar el nombre del archivo para guardar o cargar una partida.
+
+```
+
 copiar_y_agregar_extension:
 		mov CX, 0000
 		mov CL, 0c
@@ -1201,6 +1252,14 @@ ciclo_copiar_extension:
 		inc SI
 		loop ciclo_copiar_extension
 		ret
+```
+
+
+### Limpiar variables
+
+Subrutina para limpiar las variables que se utilizan en cada partida.
+
+```
 limpiar_variables:
 		mov [ficha_actual], ficha_a
 		mov [espacios_usados], 00h
@@ -1225,7 +1284,13 @@ ciclo_limpiar_cadena:
 		inc DI
 		loop ciclo_limpiar_cadena
 		ret
+```
 
+### Cargar Partida
+
+Subrutina para cargar una partida por medio de un archivo ".SAV" previamente guardado. Se encarga de solicitar y leer el nombre del archivo especificado por el usuario y tomar la información del archivo y lo coloca en las variables de la partida.
+
+```
 cargar_partida:
 	mov DX, offset nl
 	mov AH, 09
@@ -1292,7 +1357,13 @@ copyLoop:
 	je pedir_columna
 	cmp AL, 02h
 	je pedir_columna_pvc
+```
 
+### Generación de reportes
+
+Subrutinas para generar los reportes al final de las partidas en formato ".HTM". Crea y escribe el archivo con formato HMTL para posteriormente abrirlo en un navegador.
+
+```
 generar_reporte:
 	mov ah, 3Ch         ; Función 3Ch - Abrir archivo
     mov cx, 2           ; Modo de apertura (2 = crear o abrir para escritura)
@@ -1551,6 +1622,6 @@ error_reporte:
 	lea dx, mensaje_error_reporte
 	int 21h
 	jmp menu
-fin:
-.EXIT
-END
+
+```
+
