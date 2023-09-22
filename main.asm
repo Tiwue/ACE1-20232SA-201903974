@@ -69,25 +69,36 @@ buffer_carga db 0ff,00
 mensaje_guardar db "Escriba el nombre sin extension del archivo: $"
 handle_guardar dw 0000
 handle_cargar dw 0000
+handle_reporte dw 0000
 numero db 06 dup (30)
 negativo db 00
 mensaje_error_guardar db "No fue posible guardar el archivo", 0a, "$"
 
 ;;variables para reporte
+
+nombre_reporte db "REP.HTM", 0
+mensaje_error_reporte db "No fue posible generar el reporte", 0a, "$"
 parte1 db "<body style=""text-align:center""><h1>Practica 3</h1><h2>Resultado: "
-parte2 db "</h2><h3>Jugador O:"
-parte3 db "</h3><h3>Jugador X:"
-parte4 db "</h3>"
-parte5 db "</body>"
-fichas_x_1 db "<table style=""margin:auto""><tr><td>X</td></tr><tr><td>X</td></tr><tr><td>X</td></tr><tr><td>X</td></tr></table>"
-fichas_x_2 db "<table style=""margin:auto""><tr><td>X</td><td>X</td></tr><tr><td>X</td><td>X</td></tr></table>"
+parte2 db "</h2><h3>Modo de juego: "
+parte3 db "</h3><h3>Jugador O: "
+parte4 db "</h3><h3>Jugador X: "
+parte5 db "</h3>"
+parte6 db "</body>"
+fichas_x_1 db "<table style=""margin:auto""><tr><td>X</td><td>X</td><td>X</td><td>X</td></tr></table>"
+fichas_x_2 db "<table style=""margin:auto""><tr><td>X</td></tr><tr><td>X</td></tr><tr><td>X</td></tr><tr><td>X</td></tr></table>"
 fichas_x_3 db "<table style=""margin:auto""><tr><td>X</td><td></td><td></td><td></td></tr><tr><td></td><td>X</td><td></td><td></td></tr><tr><td></td><td></td><td>X</td><td></td></tr><tr><td></td><td></td><td></td><td>X</td></tr></table>"
 fichas_x_4 db "<table style=""margin:auto""><tr><td></td><td></td><td></td><td>X</td></tr><tr><td></td><td></td><td>X</td><td></td></tr><tr><td></td><td>X</td><td></td><td></td></tr><tr><td>X</td><td></td><td></td><td></td></tr></table>"
 
-fichas_o_1 db "<table style=""margin:auto""><tr><td>O</td></tr><tr><td>O</td></tr><tr><td>O</td></tr><tr><td>O</td></tr></table>"
-fichas_o_2 db "<table style=""margin:auto""><tr><td>O</td><td>O</td></tr><tr><td>O</td><td>O</td></tr></table>"
+fichas_o_1 db "<table style=""margin:auto""><tr><td>O</td><td>O</td><td>O</td><td>O</td></tr></table>"
+fichas_o_2 db "<table style=""margin:auto""><tr><td>O</td></tr><tr><td>O</td></tr><tr><td>O</td></tr><tr><td>O</td></tr></table>"
 fichas_o_3 db "<table style=""margin:auto""><tr><td>O</td><td></td><td></td><td></td></tr><tr><td></td><td>O</td><td></td><td></td></tr><tr><td></td><td></td><td>O</td><td></td></tr><tr><td></td><td></td><td></td><td>O</td></tr></table>"
 fichas_o_4 db "<table style=""margin:auto""><tr><td></td><td></td><td></td><td>O</td></tr><tr><td></td><td></td><td>O</td><td></td></tr><tr><td></td><td>O</td><td></td><td></td></tr><tr><td>O</td><td></td><td></td><td></td></tr></table>"
+str_victoria db "Victoria",0
+str_empate db "Empate",0
+str_pvp db "Jugador vs Jugador",0
+str_pvc db "Jugador vs Computadora",0
+resultado_juego db 00h
+combinacion db 00h
 .CODE
 .STARTUP
 ;; LÓGICA DEL PROGRAMA
@@ -776,6 +787,7 @@ verificar_victoria:
             je siguiente_celda3
             jmp siguiente_celda
         siguiente_celda3:
+			mov [combinacion], 01h
             mov al, [tablero+si+3]
             cmp al, ficha_a
             je victoria
@@ -792,6 +804,7 @@ verificar_victoria:
             je siguiente_celda13
             jmp siguiente_celda
         siguiente_celda13:
+			mov [combinacion], 05h
             mov al, [tablero+si+3]
             cmp al, ficha_b
             je victoria
@@ -827,6 +840,7 @@ verificar_victoria:
 			je jugador1_encontrado_vertical3
 			jmp siguiente_celda_vertical
 		jugador1_encontrado_vertical3:
+			mov [combinacion], 02h
 			mov al, [tablero+si+15h]
 			cmp al, ficha_a
 			je victoria
@@ -843,6 +857,7 @@ verificar_victoria:
 			je jugador2_encontrado_vertical3
 			jmp siguiente_celda_vertical
 		jugador2_encontrado_vertical3:
+			mov [combinacion], 06h
 			mov al, [tablero+si+15h]
 			cmp al, ficha_b
 			je victoria
@@ -876,6 +891,7 @@ verificar_victoria:
 			je jugador1_encontrado_diagonal3
 			jmp siguiente_celda_diagonal
 		jugador1_encontrado_diagonal3:
+			mov [combinacion], 03h
 			mov al, [tablero+si+18h]
 			cmp al, ficha_a
 			je victoria
@@ -892,6 +908,7 @@ verificar_victoria:
 			je jugador2_encontrado_diagonal3
 			jmp siguiente_celda_diagonal
 		jugador2_encontrado_diagonal3:
+			mov [combinacion], 07h
 			mov al, [tablero+si+18h]
 			cmp al, ficha_b
 			je victoria
@@ -940,6 +957,7 @@ verificar_victoria:
 			je jugador1_encontrado_contradiagonal3
 			jmp siguiente_celda_contradiagonal
 		jugador1_encontrado_contradiagonal3:
+			mov [combinacion], 04h
 			mov al, [tablero+si+12h]
 			cmp al, ficha_a
 			je victoria
@@ -956,6 +974,7 @@ verificar_victoria:
 			je jugador2_encontrado_contradiagonal3
 			jmp siguiente_celda_contradiagonal
 		jugador2_encontrado_contradiagonal3:
+			mov [combinacion], 08h
 			mov al, [tablero+si+12h]
 			cmp al, ficha_b
 			je victoria
@@ -987,19 +1006,26 @@ verificar_victoria:
     ret
 
 victoria:
-
+	mov al, 01h
+	mov [resultado_juego], al
+	call generar_reporte
 	call limpiar_variables
     mov ah, 09h
     lea dx, mensaje_victoria
     int 21h
+
 	jmp menu
 
 empate:
+	mov al, 00h
+	mov [resultado_juego], al
+	call generar_reporte
 
 	call limpiar_variables
     mov ah, 09h
     lea dx, mensaje_empate
     int 21h
+
 	jmp menu
 
 generar_numero_aleatorio:
@@ -1139,7 +1165,6 @@ imprimir_ficha:
 		mov AH, 09
 		int 21
 		ret
-;;
 ;; copiar_y_agregar_extension
 ;;   ENTRADAS 
 ;;     DI -> dirección del buffer de entrada
@@ -1180,6 +1205,8 @@ limpiar_variables:
 		mov [ficha_actual], ficha_a
 		mov [espacios_usados], 00h
 		mov [modo_juego], 01h
+		mov [resultado_juego], 00h
+		mov [combinacion], 00h
 		mov AL, 21h
 		mov DI, offset nombre_a
 		mov AL, 6Ch 			;;cantidad de bytes a limpiar en este caso son 108 = 1+32 + 1+32 + 42 porque las variables son contiguas
@@ -1198,7 +1225,6 @@ ciclo_limpiar_cadena:
 		inc DI
 		loop ciclo_limpiar_cadena
 		ret
-
 
 cargar_partida:
 	mov DX, offset nl
@@ -1267,6 +1293,264 @@ copyLoop:
 	cmp AL, 02h
 	je pedir_columna_pvc
 
+generar_reporte:
+	mov ah, 3Ch         ; Función 3Ch - Abrir archivo
+    mov cx, 2           ; Modo de apertura (2 = crear o abrir para escritura)
+    lea dx, nombre_reporte     ; Nombre del archivo
+    int 21h             ; Llamar a la interrupción 21h
+
+	jc error_reporte     ; Verificar si hubo un error al abrir el archivo.
+
+	mov [handle_reporte], ax ; Guardar el descriptor de archivo en variable.
+
+	;;escribir parte 1
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 42h      	; Número de bytes a escribir
+	mov dx, offset parte1 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	mov al, [resultado_juego]
+	cmp	al, 01h
+	je add_str_victoria
+	jmp add_str_empate
+
+continuar_reporte1:
+	;;escribir parte 2
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 18h      	; Número de bytes a escribir
+	mov dx, offset parte2 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+	
+	mov al, [modo_juego]
+	cmp al, 01h
+	je add_str_pvp
+	jmp add_str_pvc
+
+continuar_reporte2:
+	
+	mov al, [resultado_juego]
+	cmp	al, 01h
+	je add_combinacion
+	jmp cerrar_reporte
+
+cerrar_reporte:
+
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 07h      	; Número de bytes a escribir
+	mov dx, offset parte6		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	; Cerrar el archivo
+    mov ah, 3Eh         ; Función 3Eh - Cerrar archivo
+    mov bx, [handle_reporte]    ; Manejador del archivo
+    int 21h             ; Llamar a la interrupción 21h
+	ret
+
+add_str_victoria:
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 08h      	; Número de bytes a escribir
+	mov dx, offset str_victoria 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+	jmp continuar_reporte1
+
+add_str_empate:
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 06h      	; Número de bytes a escribir
+	mov dx, offset str_empate 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+	jmp continuar_reporte1
+
+add_str_pvp:
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 12h      	; Número de bytes a escribir
+	mov dx, offset str_pvp 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	;;escribir parte 3
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 14h      	; Número de bytes a escribir
+	mov dx, offset parte3 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	mov cx, 0000
+	mov di, offset nombre_a
+	mov cl, [nombre_a]		; colocamos el tamaño de la cadena
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	inc di				; nos movemos a la direccion de la cadena
+	mov dx, di			; colocamos la direccion de la cadena
+	int 21h             ; Llamar a la interrupción 21h
+
+	;;escribir parte 4
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 14h      	; Número de bytes a escribir
+	mov dx, offset parte4 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	mov cx, 0000
+	mov di, offset nombre_b
+	mov cl, [nombre_b]		; colocamos el tamaño de la cadena
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	inc di				; nos movemos a la direccion de la cadena
+	mov dx, di			; colocamos la direccion de la cadena
+	int 21h             ; Llamar a la interrupción 21h
+
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 05h      	; Número de bytes a escribir
+	mov dx, offset parte5 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	jmp continuar_reporte2
+
+add_str_pvc:
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 16h      	; Número de bytes a escribir
+	mov dx, offset str_pvc 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	;;escribir parte 3
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 14h      	; Número de bytes a escribir
+	mov dx, offset parte3 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	mov cx, 0000
+	mov di, offset nombre_a
+	mov cl, [nombre_a]		; colocamos el tamaño de la cadena
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	inc di				; nos movemos a la direccion de la cadena
+	mov dx, di			; colocamos la direccion de la cadena
+	int 21h             ; Llamar a la interrupción 21h
+
+	;;escribir parte 4
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 14h      	; Número de bytes a escribir
+	mov dx, offset parte4 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 0Bh      	; Número de bytes a escribir
+	mov dx, offset nombre_c 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 05h      	; Número de bytes a escribir
+	mov dx, offset parte5 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	jmp continuar_reporte2
+
+add_combinacion:
+	mov al, [combinacion]
+	cmp al, 01h
+	je comb1
+	cmp al, 02h
+	je comb2
+	cmp al, 03h
+	je comb3
+	cmp al, 04h
+	je comb4
+	cmp al, 05h
+	je comb5
+	cmp al, 06h
+	je comb6
+	cmp al, 07h
+	je comb7
+	jmp comb8
+
+comb1:
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 54h      	; Número de bytes a escribir
+	mov dx, offset fichas_o_1 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	jmp cerrar_reporte
+
+comb2:
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 6Fh    	; Número de bytes a escribir
+	mov dx, offset fichas_o_2 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	jmp cerrar_reporte
+
+comb3:
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 00DBh      	; Número de bytes a escribir
+	mov dx, offset fichas_o_3 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	jmp cerrar_reporte
+
+comb4:
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 00DBh      	; Número de bytes a escribir
+	mov dx, offset fichas_o_4 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	jmp cerrar_reporte
+
+comb5:
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 54h      	; Número de bytes a escribir
+	mov dx, offset fichas_x_1		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	jmp cerrar_reporte
+
+comb6:
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 6Fh      	; Número de bytes a escribir
+	mov dx, offset fichas_x_2		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	jmp cerrar_reporte
+
+comb7:
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 00DBh       	; Número de bytes a escribir
+	mov dx, offset fichas_x_3		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	jmp cerrar_reporte
+
+comb8:
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 00DBh      	; Número de bytes a escribir
+	mov dx, offset fichas_x_4		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+	jmp cerrar_reporte
+
+error_reporte:
+	mov ah, 09h
+	lea dx, mensaje_error_reporte
+	int 21h
+	jmp menu
 fin:
 .EXIT
 END
