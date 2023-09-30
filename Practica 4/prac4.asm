@@ -45,7 +45,58 @@ unidades_resultado    db 00h
 residuo_resultado     dw 0000h
 errorMessageCalculadora db "Entrada no valida.",0a, '$'
 contadorOperadores db 00h
+bufferOperacionTexto db 3Ch DUP(00)    ;variable para formar la operacion en texto
+operacion1 db 3Ch DUP(00)      ;variables para guardar las 10 operaciones
+operacion2 db 3Ch DUP(00)
+operacion3 db 3Ch DUP(00)
+operacion4 db 3Ch DUP(00)
+operacion5 db 3Ch DUP(00)
+operacion6 db 3Ch DUP(00)
+operacion7 db 3Ch DUP(00)
+operacion8 db 3Ch DUP(00)
+operacion9 db 3Ch DUP(00)
+operacion10 db 3Ch DUP(00)
+numeroOpGuardadas db 00h
 nl       db 0a,"$"
+str_Guardar_Op db 0ah, "Desea guardar (S/N): ", '$'
+str_max_operaciones db "Se ha alcanzado el maximo de operaciones", '$'
+nombre_reporte db "REPORTE.HTM", 0
+reporteParte1 db "<style type=""text/css"">table { border-spacing: 0; border-style: solid; border-top-width: 2px; border-right-width: 2px; border-bottom-width: 2px; border-left-width: 2px}"
+reporteParte2 db "td {border-style: solid; border-top-width: 1px; border-right-width: 0px; border-bottom-width: 0px; border-left-width: 1px}"
+reporteParte3 db "th {border-style: solid; border-top-width: 1px; border-right-width: 0px; border-bottom-width: 0px; border-left-width: 1px}"
+reporteParte4 db "</style><body><h1>Practica 4 Arqui 1 Seccion B</h1><h3>Estudiante: Steven Josue Gonzalez Monroy</h3> <h3>Carnet: 201903974</h3><h3>Fecha: "
+reporteParte5 db "</h3><h3>Hora: "
+reporteParte6 db "</h3><table><tr><th>Id Operacion</th><th>Operacion</th></tr>"
+reporteParte7 db "<tr>"
+reporteParte8 db "<td>"
+reporteParte9 db "</td>"
+reporteParte10 db "</tr>"
+handle_reporte dw 0000
+msj_reporte_exitoso db 0ah, "Reporte creado exitosamente", '$'
+mensaje_error_reporte db "No fue posible generar el reporte", 0a, "$"
+iterador_reporte dw 0000h
+contador_id_operaciones db 30h
+fecha db 10 dup (00) ; dd/mm/aaaa
+dia db 00h
+dia1 db 00h
+dia2 db 00h
+mes db 00h
+mes1 db 00h
+mes2 db 00h
+anio dw 0000h
+anio1 db 00h
+anio2 db 00h
+anio3 db 00h
+anio4 dw 0000h
+slash db '/'
+hora db 00h
+hora1 db 00h
+hora2 db 00h
+minuto db 00h
+minuto1 db 00h
+minuto2 db 00h
+dospts db ':'
+op db "Op"
 .CODE 
 .STARTUP
 ;; LÓGICA DEL PROGRAMA
@@ -72,7 +123,7 @@ menu:
 	je titulo_factorial
 	;;verifica si la tecla presionada es 4
 	cmp AL, 34h
-	je fin
+	je generar_reporte
     ;;verifica si la tecla presionada es 4
 	cmp AL, 35h
 	je fin
@@ -490,6 +541,8 @@ convert_units_v1_calculadora:
     mov al, [contadorOperadores] ; Oobtenemos el contador de operadores
     add al, 01h                  ; le incrementamos 1
     mov [contadorOperadores], al    ; guardamos el contador de operadores
+    mov DI, offset bufferOperacionTexto
+    call copiar_cadena_Operacion
     jmp mensaje2_calculadora
 
 convertir_valor1_calculadora_negativo:
@@ -527,6 +580,8 @@ convert_units_v1_negativo_calculadora:
     mov al, [contadorOperadores]    ; Oobtenemos el contador de operadores
     add al, 01h                     ; le incrementamos 1
     mov [contadorOperadores], al    ; guardamos el contador de operadores
+    mov DI, offset bufferOperacionTexto
+    call copiar_cadena_Operacion
 
 mensaje2_calculadora:
 
@@ -560,15 +615,39 @@ mensaje2_calculadora:
 
 setSuma:
     mov [operacion_calculadora], 01h
+    mov al, [bufferOperacionTexto]
+    inc al
+    mov [bufferOperacionTexto], al
+    mov bl, [bufferOperacionTexto]
+    mov bh, 00h
+    mov [bufferOperacionTexto + bx], '+'
     jmp mensaje3_calculadora
 setResta:
     mov [operacion_calculadora], 02h
+    mov al, [bufferOperacionTexto]
+    inc al
+    mov [bufferOperacionTexto], al
+    mov bl, [bufferOperacionTexto]
+    mov bh, 00h
+    mov [bufferOperacionTexto + bx], '-'
     jmp mensaje3_calculadora
 setMultiplicacion:
     mov [operacion_calculadora], 03h
+    mov al, [bufferOperacionTexto]
+    inc al
+    mov [bufferOperacionTexto], al
+    mov bl, [bufferOperacionTexto]
+    mov bh, 00h
+    mov [bufferOperacionTexto + bx], '*'
     jmp mensaje3_calculadora
 setDivision:
     mov [operacion_calculadora], 04h
+    mov al, [bufferOperacionTexto]
+    inc al
+    mov [bufferOperacionTexto], al
+    mov bl, [bufferOperacionTexto]
+    mov bh, 00h
+    mov [bufferOperacionTexto + bx], '/'
     jmp mensaje3_calculadora
 
 mensaje3_calculadora:
@@ -625,6 +704,8 @@ convert_units_v2_calculadora:
     mov al, [contadorOperadores]    ; Oobtenemos el contador de operadores
     add al, 01h                     ; le incrementamos 1
     mov [contadorOperadores], al    ; guardamos el contador de operadores
+    mov DI, offset bufferOperacionTexto
+    call copiar_cadena_Operacion
     jmp calcular
 
 convertir_valor2_calculadora_negativo:
@@ -661,6 +742,8 @@ convert_units_v2_negativo_calculadora:
     mov al, [contadorOperadores]    ; Oobtenemos el contador de operadores
     add al, 01h                     ; le incrementamos 1
     mov [contadorOperadores], al    ; guardamos el contador de operadores
+    mov DI, offset bufferOperacionTexto
+    call copiar_cadena_Operacion
 
 calcular:
     mov al, [operacion_calculadora]
@@ -755,13 +838,22 @@ siguiente_operacion:
     jmp invalidInput6
    
 mostrar_resultado_calculadora:
+    mov ah, 09h
+    lea dx, str_resultado
+    int 21h
+
+    mov al, [bufferOperacionTexto]
+    inc al
+    mov [bufferOperacionTexto], al
+    mov bl, [bufferOperacionTexto]
+    mov bh, 00h
+    mov [bufferOperacionTexto + bx], '='
+
     mov [contadorOperadores], 00h
     mov ax, [resultado]
     cmp ax, 0000h
     js mostrar_resultado_calculadora_negativo
-    mov ah, 09h
-    lea dx, nl
-    int 21h
+
     mov ax, [resultado]
     ;dividimos el resultado entre 1000
     xor dx, dx    ;limpiamos dx
@@ -791,6 +883,7 @@ mostrar_resultado_calculadora:
     mov [residuo_resultado], DX
 
 mostrar_millares:
+    
     mov al, [millares_resultado]
     cmp al, 00h
     je mostrar_centenas
@@ -798,6 +891,13 @@ mostrar_millares:
     mov dl, [millares_resultado]
     add dl, 30h
     int 21h
+
+    mov al, [bufferOperacionTexto]
+    inc al
+    mov [bufferOperacionTexto], al
+    mov bl, [bufferOperacionTexto]
+    mov bh, 00h
+    mov [bufferOperacionTexto + bx], dl
 
 mostrar_centenas:
     mov al, [millares_resultado]
@@ -812,7 +912,17 @@ continuarCentenas:
     add dl, 30h
     int 21h
 
+    mov al, [bufferOperacionTexto]
+    inc al
+    mov [bufferOperacionTexto], al
+    mov bl, [bufferOperacionTexto]
+    mov bh, 00h
+    mov [bufferOperacionTexto + bx], dl
+
 mostrar_decenas:
+    mov al, [millares_resultado]
+    cmp al, 00h
+    jg continuarDecenas
     mov al, [centenas_resultado]
     cmp al, 00h
     jg continuarDecenas
@@ -825,12 +935,27 @@ continuarDecenas:
     add dl, 30h
     int 21h
 
+    mov al, [bufferOperacionTexto]
+    inc al
+    mov [bufferOperacionTexto], al
+    mov bl, [bufferOperacionTexto]
+    mov bh, 00h
+    mov [bufferOperacionTexto + bx], dl
+
 mostrar_unidades:
     mov ah, 02h
     mov dx, [residuo_resultado]
     add dl, 30h
     int 21h
-    jmp menu
+
+    mov al, [bufferOperacionTexto]
+    inc al
+    mov [bufferOperacionTexto], al
+    mov bl, [bufferOperacionTexto]
+    mov bh, 00h
+    mov [bufferOperacionTexto + bx], dl
+
+    jmp mensaje_guardar_op
 
 invalidInput3:
     mov ah, 09h
@@ -885,12 +1010,18 @@ invalidInput6:
     jmp siguiente_operacion   ;regresarmos a pedir de nuevo el numero
 
 mostrar_resultado_calculadora_negativo:
-    mov ah, 09h
-    lea dx, nl
-    int 21h
+
     mov ah, 02h
     mov dl, '-'
     int 21h
+
+    mov al, [bufferOperacionTexto]
+    inc al
+    mov [bufferOperacionTexto], al
+    mov bl, [bufferOperacionTexto]
+    mov bh, 00h
+    mov [bufferOperacionTexto + bx], '-'
+
     mov ax, [resultado]
     neg ax
     ;dividimos el resultado entre 1000
@@ -920,6 +1051,451 @@ mostrar_resultado_calculadora_negativo:
     mov [decenas_resultado], al
     mov [residuo_resultado], DX
     jmp mostrar_millares
+
+;; copiar_cadena - copia una cadena
+;;    ENTRADAS: DI -> dirección hacia donde guardar
+copiar_cadena_Operacion:
+		;; DI tengo ^
+        
+		mov SI, offset bufferCalculadora 	;tomamos la direccion del primer byte del buffer
+		inc SI							;pasamos a la segunda posicion del buffer
+		mov AL, [SI]					;trasladamos el segundo byte del buffer a AL
+		mov BL, [DI]                    ;obtenemos la cantidad de bytes en la variable
+        add AL, BL                     ;sumamos la cantidad de bytes en el buffer a la variable
+        mov [DI], AL					;trasladamos el segundo byte del buffer a DI
+        mov AL, [SI]
+		inc SI   ;; moverme a los bytes de la cadena
+		inc DI   ;; para guardar esos bytes en el lugar correcto
+        mov BH, 00h
+        add DI, BX
+		;;
+		mov CX, 0000  ;; limpiando CX
+		mov CL, AL		;;especificamos el tamaño de la cadena para el ciclo de copiado este valor es usado por la instruccion loop
+ciclo_copiar_cadena_operacion:
+		mov AL, [SI]
+		mov [DI], AL
+		inc SI
+		inc DI
+		loop ciclo_copiar_cadena_operacion
+		ret
+
+imprimir_operacion:
+    mov ah, 09h
+    lea dx, nl
+    int 21h
+    mov ah, 02h
+    mov dl, [bx]
+    add dl, 30h
+    int 21h
+    mov ah, 09h
+    lea dx, nl
+    int 21h
+    mov cx, 0000h
+    mov cl, 3Bh
+    inc bx
+    mov si, bx
+ciclo_mostrar_operacion:
+    mov ah, 02h
+    mov dl, [si]
+    int 21h
+    inc si
+    loop ciclo_mostrar_operacion
+    ret
+
+mensaje_guardar_op:
+    mov ah, 09h
+    lea dx, str_guardar_op
+    int 21h
+
+    mov AH, 08h
+	int 21h 
+
+    cmp al, 's'
+    je guardar_op
+    cmp al, 'n'
+    je noguardar_op
+    cmp al, 'S'
+    je guardar_op
+    cmp al, 'N'
+    je noguardar_op
+    jmp mensaje_guardar_op
+noguardar_op:
+    mov [bufferOperacionTexto], 00h
+    jmp menu
+
+guardar_op:
+        mov ah, [numeroOpGuardadas]
+        cmp ah, 0Ah
+        jge mensaje_max_op_guardadas
+        mov ah, 00h
+        mov al, [numeroOpGuardadas]
+        mov bx, 003Ch
+        mul bx
+        xor bx, bx
+        mov bx, offset operacion1
+        add bx, ax 
+        mov DI, bx   ; direccion de memoria donde se guardara la operacion
+		;; DI tengo ^
+		mov SI, offset bufferOperacionTexto 	;tomamos la direccion del primer byte del buffer
+		mov AL, [SI]					;trasladamos el segundo byte del buffer a AL
+		mov [DI], AL					;trasladamos el segundo byte del buffer a DI
+        inc SI   ;; moverme a los bytes de la cadena
+		inc DI   ;; para guardar esos bytes en el lugar correcto
+		;;
+		mov CX, 0000  ;; limpiando CX
+		mov CL, AL		;;especificamos el tamaño de la cadena para el ciclo de copiado este valor es usado por la instruccion loop
+ciclo_guardar_cadena_operacion:
+		mov AL, [SI]
+		mov [DI], AL
+		inc SI
+		inc DI
+		loop ciclo_guardar_cadena_operacion
+        mov al, [numeroOpGuardadas]
+        inc al
+        mov [numeroOpGuardadas], al
+        mov [bufferOperacionTexto], 00h
+		jmp menu
+
+mensaje_max_op_guardadas:
+    mov ah, 09h
+    lea dx, str_max_operaciones
+    int 21h
+    jmp menu
+
+generar_reporte:
+    mov ah, 3Ch         ; Función 3Ch - Abrir archivo
+    mov cx, 2           ; Modo de apertura (2 = crear o abrir para escritura)
+    lea dx, nombre_reporte     ; Nombre del archivo
+    int 21h             ; Llamar a la interrupción 21h
+
+	jc error_reporte     ; Verificar si hubo un error al abrir el archivo.
+
+    mov [handle_reporte], ax ; Guardar el descriptor de archivo en variable.
+
+	;;escribir parte 1
+	mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 00A8h     	; Número de bytes a escribir
+	mov dx, offset reporteParte1 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 007Ah    	; Número de bytes a escribir
+	mov dx, offset reporteParte2 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 007Ah      	; Número de bytes a escribir
+	mov dx, offset reporteParte3 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+	mov bx, [handle_reporte] ; Descriptor de archivo
+	mov cx, 008Ah     	; Número de bytes a escribir
+	mov dx, offset reporteParte4 		; Dirección del buffer
+	int 21h             ; Llamar a la interrupción 21h
+
+    mov ah, 2Ah       ; Función 2Ah de la interrupción 21h (obtener la fecha)
+    int 21h
+    
+    mov [dia], dl
+    mov [mes], dh
+    mov [anio], cx
+
+    xor ax, ax
+    xor cx, cx
+    xor dx, dx
+    mov al, [dia]
+    mov cx, 0ah
+    div cx
+
+    add al, '0'
+    add dl, '0'
+    mov [dia1], al
+    mov [dia2], dl
+    
+    
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte] ; Descriptor de archivo
+    mov cx, 0001h     	; Número de bytes a escribir
+    mov dx, offset dia1 		; Dirección del buffer
+    int 21h             ; Llamar a la interrupción 21h
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte] ; Descriptor de archivo
+    mov cx, 0001h     	; Número de bytes a escribir
+    mov dx, offset dia2 		; Dirección del buffer
+    int 21h             ; Llamar a la interrupción 21h
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte] ; Descriptor de archivo
+    mov cx, 0001h     	; Número de bytes a escribir
+    mov dx, offset slash 		; Dirección del buffer
+    int 21h             ; Llamar a la interrupción 21h
+
+    xor ax, ax
+    xor cx, cx
+    xor dx, dx
+    mov al, [mes]
+    mov cx, 0ah
+    div cx
+
+    add al, '0'
+    add dl, '0'
+    mov [mes1], al
+    mov [mes2], dl
+    
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte] ; Descriptor de archivo
+    mov cx, 0001h     	; Número de bytes a escribir
+    mov dx, offset mes1 		; Dirección del buffer
+    int 21h   
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte] ; Descriptor de archivo
+    mov cx, 0001h     	; Número de bytes a escribir
+    mov dx, offset mes2 		; Dirección del buffer
+    int 21h   
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte] ; Descriptor de archivo
+    mov cx, 0001h     	; Número de bytes a escribir
+    mov dx, offset slash 		; Dirección del buffer
+    int 21h             ; Llamar a la interrupción 21h
+
+    xor ax, ax
+    xor cx, cx
+    xor dx, dx
+    mov ax, [anio]
+    mov cx, 03E8h
+    div cx
+
+    add al, '0'
+    mov [anio1], al
+    mov [anio4], dx
+
+    xor ax, ax
+    xor cx, cx
+    xor dx, dx
+    mov ax, [anio4]
+    mov cx, 64h
+    div cx
+
+    add al, '0'
+    mov [anio2], al
+    mov [anio4], DX
+
+    xor ax, ax
+    xor cx, cx
+    xor dx, dx
+    mov ax, [anio4]
+    mov cx, 0Ah
+    div cx
+
+    add al, '0'
+    add dl, '0'
+    mov [anio3], al
+    mov [anio4], Dx
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte] ; Descriptor de archivo
+    mov cx, 0001h     	; Número de bytes a escribir
+    mov dx, offset anio1 		; Dirección del buffer
+    int 21h  
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte] ; Descriptor de archivo
+    mov cx, 0001h     	; Número de bytes a escribir
+    mov dx, offset anio2		; Dirección del buffer
+    int 21h  
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte] ; Descriptor de archivo
+    mov cx, 0001h     	; Número de bytes a escribir
+    mov dx, offset anio3		; Dirección del buffer
+    int 21h  
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte] ; Descriptor de archivo
+    mov cx, 0002h     	; Número de bytes a escribir
+    mov dx, offset anio4 		; Dirección del buffer
+    int 21h
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte] ; Descriptor de archivo
+    mov cx, 000Fh     	; Número de bytes a escribir
+    mov dx, offset reporteParte5 		; Dirección del buffer
+    int 21h
+
+    mov ah, 2Ch     ; Función 2Ch de la interrupción 21h (obtener la hora)
+    int 21h
+
+    mov [hora], ch
+    mov [minuto], cl
+
+    xor ax, ax
+    xor cx, cx
+    xor dx, dx
+    mov al, [hora]
+    mov cx, 0ah
+    div cx
+
+    add al, '0'
+    add dl, '0'
+    mov [hora1], al
+    mov [hora2], dl
+
+    xor ax, ax
+    xor cx, cx
+    xor dx, dx
+    mov al, [minuto]
+    mov cx, 0ah
+    div cx
+
+    add al, '0'
+    add dl, '0'
+    mov [minuto1], al
+    mov [minuto2], dl
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte]    ; Descriptor de archivo
+    mov cx, 0001h     	; Número de bytes a escribir
+    mov dx, offset hora1 		; Dirección del buffer
+    int 21h
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte]    ; Descriptor de archivo
+    mov cx, 0001h     	; Número de bytes a escribir
+    mov dx, offset hora2 		; Dirección del buffer
+    int 21h
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte]    ; Descriptor de archivo
+    mov cx, 0001h     	; Número de bytes a escribir
+    mov dx, offset dospts 		; Dirección del buffer
+    int 21h
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte]    ; Descriptor de archivo
+    mov cx, 0001h     	; Número de bytes a escribir
+    mov dx, offset minuto1 		; Dirección del buffer
+    int 21h
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte]    ; Descriptor de archivo
+    mov cx, 0001h     	; Número de bytes a escribir
+    mov dx, offset minuto2 		; Dirección del buffer
+    int 21h
+
+    mov ah, 40h         ; Función 40h - Escribir en archivo
+    mov bx, [handle_reporte] ; Descriptor de archivo
+    mov cx, 3Ch     	; Número de bytes a escribir
+    mov dx, offset reporteParte6 		; Dirección del buffer
+    int 21h
+
+ciclo_generar_reporte_operaciones:
+
+    mov cx, [iterador_reporte] ;validamos que el iterador no sea mayor a 10 operaciones
+    cmp cx, 021Ch
+    jg cerrar_reporte ;si es mayor entonces terminamos de generar el reporte
+    mov DI, offset operacion1
+    add DI, cx
+    mov al, [DI] ;obtenemos el primer byte de la operacion y validamos que la cantidad de bytes sea mayor a 0
+    cmp al, 00h
+    je cerrar_reporte
+
+    mov ah, 40h
+    mov bx, [handle_reporte]
+    mov cx, 0004h
+    mov dx, offset reporteParte7
+    int 21h
+
+    mov ah, 40h
+    mov bx, [handle_reporte]
+    mov cx, 0004h
+    mov dx, offset reporteParte8
+    int 21h
+
+    mov ah, 40h
+    mov bx, [handle_reporte]
+    mov cx, 0002h
+    mov dx, offset op
+    int 21h
+
+    mov al, [contador_id_operaciones]
+    add al, 01h
+    mov [contador_id_operaciones], al
+    mov ah, 40h
+    mov bx, [handle_reporte]
+    mov cx, 0001h
+    mov dx, offset contador_id_operaciones
+    int 21h
+
+    mov ah, 40h
+    mov bx, [handle_reporte]
+    mov cx, 0005h
+    mov dx, offset reporteParte9
+    int 21h
+
+    mov ah, 40h
+    mov bx, [handle_reporte]
+    mov cx, 0004h
+    mov dx, offset reporteParte8
+    int 21h
+
+    mov ah, 40h
+    mov bx, [handle_reporte]
+    mov cx, 3Ah
+    inc DI
+    mov dx, DI
+    int 21h
+
+    mov ah, 40h
+    mov bx, [handle_reporte]
+    mov cx, 0005h
+    mov dx, offset reporteParte9
+    int 21h
+
+    mov ah, 40h
+    mov bx, [handle_reporte]
+    mov cx, 0005h
+    mov dx, offset reporteParte10
+    int 21h
+    
+    mov cx, [iterador_reporte]
+    add cx, 3Ch
+    mov [iterador_reporte], cx
+
+    jmp ciclo_generar_reporte_operaciones
+
+
+cerrar_reporte:
+
+	; Cerrar el archivo
+    mov ah, 3Eh         ; Función 3Eh - Cerrar archivo
+    mov bx, [handle_reporte]    ; Manejador del archivo
+    int 21h             ; Llamar a la interrupción 21h
+    
+    mov ah, 09h
+    lea dx, msj_reporte_exitoso
+    int 21h
+
+    mov cx, 0000h
+    mov [iterador_reporte], cx
+    mov cl, 30h
+    mov [contador_id_operaciones], cl
+
+    jmp menu
+
+error_reporte:
+	mov ah, 09h
+	lea dx, mensaje_error_reporte
+	int 21h
+	jmp menu
+
+
 
 fin:
 .EXIT
